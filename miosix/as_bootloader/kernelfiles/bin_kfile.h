@@ -18,6 +18,7 @@ namespace miosix
 
         void load(void **kernelFileStart, void **kernelFileEnd) override
         {
+
             *kernelFileStart = nullptr;
             *kernelFileEnd = nullptr;
 
@@ -39,11 +40,12 @@ namespace miosix
                 return;
             }
 
-            // read file content into dest 1024 bytes at a time
+            // read file content into dest a chunk at a time
+            size_t chunkSize = 512; // Sometimes more than 512 bytes at a time is a problem
             size_t totalBytesRead = 0;
             while (totalBytesRead < filesize)
             {
-                size_t bytesRead = fread((char *)dest + totalBytesRead, 1, 1024, file);
+                size_t bytesRead = fread((char *)dest + totalBytesRead, 1, chunkSize, file);
                 if (bytesRead == 0)
                 {
                     if (feof(file))
@@ -59,7 +61,7 @@ namespace miosix
                             printf(": %d: %s\n", errno, strerror(errno));
                         else
                             printf("\n");
-                        
+
                         break; // Error reading file
                     }
                 }
