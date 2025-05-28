@@ -5,6 +5,8 @@
 #pragma once
 
 #include "kfile.h"
+#include "util/util.h"
+#include "string.h"
 
 namespace miosix
 {
@@ -16,45 +18,59 @@ namespace miosix
 
         void load(void **kernelFileStart, void **kernelFileEnd) override
         {
+            *kernelFileStart = nullptr;
+            *kernelFileEnd = nullptr;
+
             void *dest = malloc(filesize);
             if (dest == nullptr)
             {
-                printf("Failed to allocate memory for kernel file: %s\n", filename.c_str());
-
-                *kernelFileStart = nullptr;
+                printf(" - Failed to allocate memory\n");
                 return;
             }
 
             // open file at directory/filename
             std::string fullPath = directory + "/" + filename;
             FILE *file = fopen(fullPath.c_str(), "rb");
+            printf(" + Opening kernel file: %s\n", fullPath.c_str());
             if (file == nullptr)
             {
-                printf("Failed to open kernel file: %s\n", fullPath.c_str());
+                printf(" - Failed to open file\n");
                 free(dest);
-
-                *kernelFileStart = nullptr;
                 return;
             }
 
-            // read file content into dest
-            size_t chunkSize = 1024;
+            // read file content into dest 1024 bytes at a time
             size_t totalBytesRead = 0;
-
-            size_t bytesRead = fread(dest, 1, chunkSize, file);
-            while (bytesRead > 0)
+            while (totalBytesRead < filesize)
             {
-                bytesRead = fread((void *)((unsigned int)dest + totalBytesRead), 1, chunkSize, file);
+                size_t bytesRead = fread((char *)dest + totalBytesRead, 1, 1024, file);
+                if (bytesRead == 0)
+                {
+                    if (feof(file))
+                    {
+                        printf(" + Reached end of file\n");
+                        break; // End of file reached
+                    }
+                    else
+                    {
+                        printf(" - Error reading file");
+
+                        if (ferror(file))
+                            printf(": %d: %s\n", errno, strerror(errno));
+                        else
+                            printf("\n");
+                        
+                        break; // Error reading file
+                    }
+                }
                 totalBytesRead += bytesRead;
             }
             fclose(file);
 
             if (totalBytesRead != filesize)
             {
-                printf("Unable to reaad all file content: expected %u bytes, got %u bytes\n", filesize, totalBytesRead);
+                printf(" - Error loading file: got %u/%u B\n", totalBytesRead, filesize);
                 free(dest);
-
-                kernelFileStart = nullptr;
                 return;
             }
 

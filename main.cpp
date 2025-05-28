@@ -62,7 +62,7 @@ int main()
             printf("No kernel files found in the bootloader directory.\n");
             exit_bl();
         }
-        printf("Found %u kernel files.\n", kernelFilesCount);
+        printf(" + Found %u kernel files.\n", kernelFilesCount);
     }
 
     std::shared_ptr<KernelFile> selected_kf;
