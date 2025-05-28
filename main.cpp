@@ -37,8 +37,6 @@ inline void copy_and_run(void *destKernelPos, void *kernelFileStart, void *kerne
         "b 1b                 \n\t"
         "2:                   \n\t"
         "bx r4                \n\t"
-        "nop                  \n\t"
-        "                     \n\t"
         :
         : [dst] "r"(destKernelPos),
           [src] "r"(kernelFileStart),
