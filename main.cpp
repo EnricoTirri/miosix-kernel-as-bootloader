@@ -3,6 +3,7 @@
 #include "miosix.h"
 
 #include "as_bootloader/bl_manager.h"
+#include "filesystem/file_access.h"
 
 using namespace std;
 using namespace miosix;
@@ -19,12 +20,25 @@ inline void copy_and_run(void *destKernelPos, void *kernelFileStart, void *kerne
 
     void *resetHandler = (void *)((unsigned int)destKernelPos + resetHandlerDisplacement);
 
+    printf(" + Will call reset handler at %p\n", resetHandler);
+
+    GlobalIrqLock lock;
+    printf(" + GlobalLock acquired\n");
+
+    // FilesystemManager::instance().umountAll(); // Does not work, get stuck
+    FilesystemManager::instance().umount("/sd");
+    FilesystemManager::instance().umount("/dev");
+    FilesystemManager::instance().umount("/");
+    printf(" + Unmounted all filesystem correctly\n");
+
     __asm__ __volatile__(
-        "push {r0-r4}         \n\t"
+        "push {r0-r5}         \n\t"
         "mov r0, %[dst]       \n\t"
         "mov r1, %[src]       \n\t"
         "mov r2, %[end]       \n\t"
-        "mov r4, %[run]       \n\t"
+        "ldr r4, [%[stk]]     \n\t"
+        "mov r5, %[run]       \n\t"
+        "cpsid i              \n\t"
         "1:                   \n\t"
         "cmp r1, r2           \n\t"
         "beq 2f               \n\t"
@@ -36,13 +50,12 @@ inline void copy_and_run(void *destKernelPos, void *kernelFileStart, void *kerne
         "add r1, r1, #1       \n\t"
         "b 1b                 \n\t"
         "2:                   \n\t"
-        "bx r4                \n\t"
-        :
-        : [dst] "r"(destKernelPos),
-          [src] "r"(kernelFileStart),
-          [end] "r"(kernelFileEnd),
-          [run] "r"(resetHandler)
-        : "memory");
+        "msr msp, r4          \n\t"
+        "bx r5                \n\t" : : [dst] "r"(destKernelPos),
+                                        [src] "r"(kernelFileStart),
+                                        [end] "r"(kernelFileEnd),
+                                        [stk] "r"(destKernelPos),
+                                        [run] "r"(resetHandler) : "memory");
 }
 
 int main()
@@ -51,7 +64,6 @@ int main()
 
     printf("Initializing Bootloader Manager...\n");
     BootloaderManager blManager("/sd/");
-
     {
         if (!blManager.isValid())
             exit_bl();
@@ -64,35 +76,37 @@ int main()
         }
         printf(" + Found %u kernel files.\n", kernelFilesCount);
     }
+    printf("...OK\n");
 
+    printf("Selecting kernel file...\n");
     std::shared_ptr<KernelFile> selected_kf;
-
     {
         // TODO selection of kernel file
         selected_kf = blManager.getKernelFiles().at(0);
-        printf("Selected kernel file: %s\n", selected_kf->getFilename().c_str());
     }
+    printf("...OK selected: %s\n", selected_kf->getFilename().c_str());
 
+    printf("Loading kernel file in memory...\n");
     void *kernelFileStart;
     void *kernelFileEnd;
-    void *destKernelPos;
-
     {
-        printf("Loading kernel file in memory...\n");
         selected_kf->load(&kernelFileStart, &kernelFileEnd);
 
         if (kernelFileStart == nullptr || kernelFileEnd == nullptr)
         {
-            printf("Failed to load kernel file into memory.\n");
+            printf("...KO.\n");
             exit_bl();
         }
-        printf("Kernel file loaded successfully from %p to %p.\n", kernelFileStart, kernelFileEnd);
-
-        destKernelPos = (void *)SRAM_BASE; // TODO find correctly RAM base address
-        printf("Ram base address: %p\n", destKernelPos);
     }
+    printf("...OK loaded from %p to %p.\n", kernelFileStart, kernelFileEnd);
 
-    copy_and_run(destKernelPos, kernelFileStart, kernelFileEnd);
+    printf("Copy and run kernel...\n");
+    void *destKernelPos;
+    {
+        destKernelPos = (void *)SRAM_BASE; // TODO find correctly RAM base address
+        printf(" + Ram base address: %p\n", destKernelPos);
+        copy_and_run(destKernelPos, kernelFileStart, kernelFileEnd);
+    }
 
     exit_bl(); // This point should never be reached
 }
