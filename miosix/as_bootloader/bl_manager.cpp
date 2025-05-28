@@ -37,7 +37,7 @@ namespace miosix
             {
                 size_t filesize = st.st_size;
                 auto kfile = KernelFileFactory::instance().create(mountpoint, filename, filesize);
-                kernelFiles.push_back(std::move(kfile));
+                kernelFiles.push_back(kfile);
             }
         }
         closedir(dir);

@@ -51,7 +51,8 @@ util/util.cpp                                                              \
 util/unicode.cpp                                                           \
 util/version.cpp                                                           \
 util/crc16.cpp                                                             \
-util/lcd44780.cpp
+util/lcd44780.cpp														   \
+as_bootloader/bl_manager.cpp
 
 ## Add the architecture dependand sources to the list of files to build.
 ## ARCH_SRC will contain different source files depending on which

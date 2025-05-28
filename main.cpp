@@ -24,7 +24,7 @@ inline void copy_and_run(void *destKernelPos, void *kernelFileStart, void *kerne
         "mov r0, %[dst]       \n\t"
         "mov r1, %[src]       \n\t"
         "mov r2, %[end]       \n\t"
-        "mov r4, $[run]       \n\t"
+        "mov r4, %[run]       \n\t"
         "1:                   \n\t"
         "cmp r1, r2           \n\t"
         "beq 2f               \n\t"
@@ -71,7 +71,7 @@ int main()
 
     {
         // TODO selection of kernel file
-        blManager.getKernelFiles().at(0);
+        selected_kf = blManager.getKernelFiles().at(0);
         printf("Selected kernel file: %s\n", selected_kf->getFilename().c_str());
     }
 
