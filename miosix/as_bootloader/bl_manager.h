@@ -26,6 +26,8 @@ namespace miosix
 
         void loadConfig();
 
+        void assignTag(const std::string &tag, const std::string &value);
+
         std::shared_ptr<KernelFile> selectFile();
 
         const std::vector<std::shared_ptr<KernelFile>> &getKernelFiles() const
@@ -41,5 +43,20 @@ namespace miosix
         std::vector<std::shared_ptr<KernelFile>> kernelFiles;
 
         size_t getFileSize(const std::string &filepath);
+
+// Configs definer
+#define CONFIG_VAR(type, name, default) \
+private:                                \
+    type name = default;                \
+                                        \
+public:                                 \
+    type get##name() const { return name; }
+
+        // Config list
+        CONFIG_VAR(std::string, DefaultFile, "")
+        CONFIG_VAR(std::string, AlternativeFile, "")
+        CONFIG_VAR(bool, Verbose, false)
+
+#undef CONFIG_VAR
     };
 }

@@ -79,6 +79,12 @@ int main()
     }
     printf("+ ...OK\n");
 
+    printf("+ Try reading config...\n");
+    {
+        blManager.loadConfig();
+    }
+    printf("+ ...OK\n");
+
     printf("+ Selecting kernel file...\n");
     std::shared_ptr<KernelFile> selected_kf;
     {

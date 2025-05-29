@@ -77,4 +77,62 @@ namespace miosix
         return kernelFiles.at(selected);
     }
 
+    void BootloaderManager::loadConfig()
+    {
+        std::string configPath = mountpoint + "/config.txt";
+
+        FILE *configFile = fopen(configPath.c_str(), "r");
+        if (!configFile)
+        {
+            printf("Configuration file not found at %s\n", configPath.c_str());
+            return;
+        }
+
+        printf("Reading configuration from %s...\n", configPath.c_str());
+
+        char buffer[256];
+        while (fgets(buffer, sizeof(buffer), configFile))
+        {
+            // Remove trailing newline character
+            buffer[strcspn(buffer, "\n")] = '\0';
+
+            // Find the delimiter ':' in the line
+            char *delimiter = strchr(buffer, ':');
+            if (delimiter == nullptr)
+            {
+                printf("Invalid config line (missing ':'): %s\n", buffer);
+                continue;
+            }
+
+            // Split the line into tag and value
+            *delimiter = '\0'; // Replace ':' with null terminator
+            std::string tag = buffer;
+            std::string value = delimiter + 1;
+
+            assignTag(tag, value);
+        }
+
+        fclose(configFile);
+        printf("Configuration loaded successfully.\n");
+    }
+
+#define CHECK_TAG(tagVar, tagVal, valueDst, valueSrc) \
+    {                                                 \
+        if (tagVar == tagVal)                         \
+        {                                             \
+            valueDst = valueSrc;                      \
+            return;                                   \
+        }                                             \
+    }
+
+    void BootloaderManager::assignTag(const std::string &tag, const std::string &value)
+    {
+        CHECK_TAG(tag, "default", DefaultFile, value)
+        CHECK_TAG(tag, "alternative", AlternativeFile, value)
+        CHECK_TAG(tag, "verbose", Verbose, (value == "1"))
+        printf("Unknown tag: %s\n", tag.c_str());
+    }
+
+#undef CHECK_TAG
+
 }
