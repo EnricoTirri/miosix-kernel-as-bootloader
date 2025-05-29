@@ -52,4 +52,25 @@ namespace miosix
         return static_cast<size_t>(-1);
     }
 
+    std::shared_ptr<KernelFile> BootloaderManager::selectFile()
+    {
+        // TODO skip selection if specified in config
+
+        // print all kernel files name
+        printf("Available kernel files:\n");
+        int i = 0;
+        for (auto file : kernelFiles)
+        {
+            printf(" %d) %s\n", i++, file->getFilename().c_str());
+        }
+        size_t selected = -1;
+        while (selected < 0 || selected >= kernelFiles.size())
+        {
+            printf("Select an index: "); fflush(stdout);
+            scanf("%u", &selected);
+        }
+
+        return kernelFiles.at(selected);
+    }
+
 }

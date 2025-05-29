@@ -20,6 +20,8 @@ namespace miosix
 
         bool isValid() const { return valid; }
 
+        std::shared_ptr<KernelFile> selectFile();
+
         const std::vector<std::shared_ptr<KernelFile>> &getKernelFiles() const
         {
             return kernelFiles;

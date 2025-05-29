@@ -81,8 +81,7 @@ int main()
     printf("+ Selecting kernel file...\n");
     std::shared_ptr<KernelFile> selected_kf;
     {
-        // TODO selection of kernel file
-        selected_kf = blManager.getKernelFiles().at(0);
+        selected_kf = blManager.selectFile();
     }
     printf("+ ...OK selected: %s\n", selected_kf->getFilename().c_str());
 
