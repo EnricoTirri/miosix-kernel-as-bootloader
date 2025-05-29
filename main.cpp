@@ -63,7 +63,8 @@ int main()
     printf("========= Bootloader Started =========\n");
 
     printf("+ Initializing Bootloader Manager...\n");
-    BootloaderManager blManager("/sd/");
+
+    BootloaderManager blManager;
     {
         if (!blManager.isValid())
             exit_bl();

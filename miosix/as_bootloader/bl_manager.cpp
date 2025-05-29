@@ -10,13 +10,16 @@
 
 namespace miosix
 {
-    BootloaderManager::BootloaderManager(const std::string &mountpoint)
-        : mountpoint(mountpoint), valid(false)
+    BootloaderManager::BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir)
+        : mountpoint(mountpoint), kernelsDir(kernelsDir), valid(false)
     {
-        DIR *dir = opendir(mountpoint.c_str());
+
+        std::string filesDir = mountpoint + "/" + kernelsDir;
+
+        DIR *dir = opendir(filesDir.c_str());
         if (!dir)
         {
-            printf("Mountpoint does not exist or is not a directory: %s\n", mountpoint.c_str());
+            printf("Mountpoint does not exist or is not a directory: %s\n", filesDir.c_str());
             valid = false;
             return;
         }
@@ -30,13 +33,13 @@ namespace miosix
                 continue;
 
             std::string filename = entry->d_name;
-            std::string fullpath = mountpoint + "/" + filename;
+            std::string fullpath = filesDir + "/" + filename;
 
             struct stat st;
             if (stat(fullpath.c_str(), &st) == 0 && S_ISREG(st.st_mode))
             {
                 size_t filesize = st.st_size;
-                auto kfile = KernelFileFactory::instance().create(mountpoint, filename, filesize);
+                auto kfile = KernelFileFactory::instance().create(filesDir, filename, filesize);
                 kernelFiles.push_back(kfile);
             }
         }
@@ -66,7 +69,8 @@ namespace miosix
         size_t selected = -1;
         while (selected < 0 || selected >= kernelFiles.size())
         {
-            printf("Select an index: "); fflush(stdout);
+            printf("Select an index: ");
+            fflush(stdout);
             scanf("%u", &selected);
         }
 
