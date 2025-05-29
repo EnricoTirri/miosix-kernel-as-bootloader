@@ -16,28 +16,24 @@ namespace miosix
         BinKernelFile(const std::string &dir, const std::string &fn, size_t size)
             : KernelFile(dir, fn, size) {}
 
-        void load(void **kernelFileStart, void **kernelFileEnd) override
+        void load(void **kernelFileStart, void **kernelFileEnd)
         {
-
             *kernelFileStart = nullptr;
             *kernelFileEnd = nullptr;
 
             void *dest = malloc(filesize);
             if (dest == nullptr)
             {
-                printf("# Failed to allocate memory\n");
-                return;
+                throw new std::runtime_error("Failed to allocate memory for kernel file");
             }
 
             // open file at directory/filename
             std::string fullPath = directory + "/" + filename;
             FILE *file = fopen(fullPath.c_str(), "rb");
-            printf("Opening kernel file: %s\n", fullPath.c_str());
             if (file == nullptr)
             {
-                printf("# Failed to open file\n");
                 free(dest);
-                return;
+                throw new std::runtime_error("Failed to open kernel file: " + fullPath);
             }
 
             // read file content into dest a chunk at a time
@@ -50,19 +46,20 @@ namespace miosix
                 {
                     if (feof(file))
                     {
-                        printf("Reached end of file\n");
                         break; // End of file reached
                     }
                     else
                     {
-                        printf("# Error reading file");
+                        free(dest);
 
                         if (ferror(file))
-                            printf(": %d: %s\n", errno, strerror(errno));
+                        {
+                            throw new std::runtime_error("Error reading kernel file: " + std::string(strerror(errno)));
+                        }
                         else
-                            printf("\n");
-
-                        break; // Error reading file
+                        {
+                            throw new std::runtime_error("Unknown error reading kernel file");
+                        }
                     }
                 }
                 totalBytesRead += bytesRead;
@@ -71,9 +68,8 @@ namespace miosix
 
             if (totalBytesRead != filesize)
             {
-                printf("# Error loading file: got %u/%u B\n", totalBytesRead, filesize);
                 free(dest);
-                return;
+                throw new std::runtime_error("Error loading kernel file: got " + std::to_string(totalBytesRead) + "/" + std::to_string(filesize) + " B");
             }
 
             *kernelFileStart = dest;

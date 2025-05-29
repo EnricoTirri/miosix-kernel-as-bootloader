@@ -7,43 +7,74 @@
 #include <cstring>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <filesystem/file_access.h>
+#include "kernel/logging.h"
 
 namespace miosix
 {
-    BootloaderManager::BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir)
+    BootloaderManager::BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir, bool loadConfig)
         : mountpoint(mountpoint), kernelsDir(kernelsDir), valid(false)
     {
-
-        std::string filesDir = mountpoint + "/" + kernelsDir;
-
-        DIR *dir = opendir(filesDir.c_str());
-        if (!dir)
+        // Check if mountpoint is a valid directory
+        bootlog("Checking mountpoint: %s ... ", mountpoint.c_str());
+        DIR *mountDir = opendir(mountpoint.c_str());
+        if (!mountDir)
         {
-            printf("Mountpoint does not exist or is not a directory: %s\n", filesDir.c_str());
-            valid = false;
+            bootlog("KO : does not exist or is not a directory\n");
+            return;
+        }
+        bootlog("OK\n");
+        closedir(mountDir);
+
+        // Try load configuration if requested
+        if (loadConfig)
+        {
+            this->loadConfig();
+        }
+
+        bootlog("Initializing Bootloader Manager ... ");
+
+        try
+        {
+            // Check if kernelsDir is valid
+            std::string filesDir = mountpoint + "/" + kernelsDir;
+            DIR *dir = opendir(filesDir.c_str());
+            if (!dir)
+                throw std::runtime_error("Kernel files directory does not exist or is not a directory");
+
+            // Build the list of kernel files from the directory
+            struct dirent *entry;
+            while ((entry = readdir(dir)) != nullptr)
+            {
+                // Skip the current and parent directory entries
+                if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+                    continue;
+
+                std::string filename = entry->d_name;
+                std::string fullpath = filesDir + "/" + filename;
+
+                struct stat st;
+                if (stat(fullpath.c_str(), &st) == 0 && S_ISREG(st.st_mode))
+                {
+                    size_t filesize = st.st_size;
+                    auto kfile = KernelFileFactory::instance().create(filesDir, filename, filesize);
+                    kernelFiles.push_back(kfile);
+                }
+            }
+            closedir(dir);
+
+            if (kernelFiles.empty())
+                throw new std::runtime_error("No kernel files found in directory");
+
+            valid = true;
+        }
+        catch (const std::exception &e)
+        {
+            bootlog("KO : %s\n", e.what());
             return;
         }
 
-        valid = true;
-
-        struct dirent *entry;
-        while ((entry = readdir(dir)) != nullptr)
-        {
-            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-                continue;
-
-            std::string filename = entry->d_name;
-            std::string fullpath = filesDir + "/" + filename;
-
-            struct stat st;
-            if (stat(fullpath.c_str(), &st) == 0 && S_ISREG(st.st_mode))
-            {
-                size_t filesize = st.st_size;
-                auto kfile = KernelFileFactory::instance().create(filesDir, filename, filesize);
-                kernelFiles.push_back(kfile);
-            }
-        }
-        closedir(dir);
+        bootlog("OK : %u kernel files\n", kernelFiles.size());
     }
 
     size_t BootloaderManager::getFileSize(const std::string &filepath)
@@ -51,15 +82,34 @@ namespace miosix
         struct stat st;
         if (stat(filepath.c_str(), &st) == 0)
             return st.st_size;
-        printf("Failed to get size of file: %s\n", filepath.c_str());
         return static_cast<size_t>(-1);
     }
 
-    std::shared_ptr<KernelFile> BootloaderManager::selectFile()
+    BootloaderManager &BootloaderManager::selectFile()
     {
-        // TODO skip selection if specified in config
+        // Validity barrier
+        if (!valid)
+        {
+            bootlog("Skip selection, bootloader manager not valid");
+            return *this;
+        }
 
-        // print all kernel files name
+        // Check if a default or alternative file have been selected
+        std::string t = (DefaultFile != "" ? DefaultFile : AlternativeFile);
+        if (t != "")
+        {
+            for (auto file : kernelFiles)
+            {
+                if (t == file->getFilename())
+                {
+                    selectedFile = file;
+                    bootlog("Config selected kernel file: %s\n", selectedFile->getFilename().c_str());
+                    return *this;
+                }
+            }
+        }
+
+        // Rollback on user choice
         printf("Available kernel files:\n");
         int i = 0;
         for (auto file : kernelFiles)
@@ -74,21 +124,29 @@ namespace miosix
             scanf("%u", &selected);
         }
 
-        return kernelFiles.at(selected);
+        selectedFile = kernelFiles[selected];
+
+        if (selectedFile != nullptr)
+            bootlog("User selected kernel file: %s\n", selectedFile->getFilename().c_str());
+        else
+            printf("Unwanted error : file selected is null\n");
+
+        return *this;
     }
 
-    void BootloaderManager::loadConfig()
+    BootloaderManager &BootloaderManager::loadConfig()
     {
+        bootlog("Loading configuration ... ");
+
+        // Load configuration from the config.txt file in the mountpoint
         std::string configPath = mountpoint + "/config.txt";
 
         FILE *configFile = fopen(configPath.c_str(), "r");
         if (!configFile)
         {
-            printf("Configuration file not found at %s\n", configPath.c_str());
-            return;
+            bootlog("KO continuing with defaults\n");
+            return *this;
         }
-
-        printf("Reading configuration from %s...\n", configPath.c_str());
 
         char buffer[256];
         while (fgets(buffer, sizeof(buffer), configFile))
@@ -99,23 +157,126 @@ namespace miosix
             // Find the delimiter ':' in the line
             char *delimiter = strchr(buffer, ':');
             if (delimiter == nullptr)
-            {
-                printf("Invalid config line (missing ':'): %s\n", buffer);
                 continue;
-            }
 
             // Split the line into tag and value
             *delimiter = '\0'; // Replace ':' with null terminator
             std::string tag = buffer;
             std::string value = delimiter + 1;
 
+            // try to assign the value to tagged variable
             assignTag(tag, value);
         }
-
         fclose(configFile);
-        printf("Configuration loaded successfully.\n");
+
+        bootlog("OK\n");
+        return *this;
     }
 
+    BootloaderManager &BootloaderManager::loadSelectedFile()
+    {
+        // Validity barrier
+        if (!valid)
+        {
+            bootlog("Skip loading, bootloader manager not valid\n");
+            return *this;
+        }
+
+        if (selectedFile == nullptr)
+        {
+            bootlog("Skip loading, no kernel file selected\n");
+            return *this;
+        }
+
+        bootlog("Loading selected kernel file ... ");
+
+        kernelFileStart = nullptr;
+        kernelFileEnd = nullptr;
+
+        // Load the selected kernel file into memory
+        selectedFile->load(&kernelFileStart, &kernelFileEnd);
+        if (kernelFileStart == nullptr || kernelFileEnd == nullptr)
+        {
+            kernelFileStart = nullptr;
+            kernelFileEnd = nullptr;
+        }
+
+        if (kernelFileStart == nullptr)
+            bootlog("KO loading kernel file\n");
+        else
+            bootlog("OK loaded from %p to %p.\n", kernelFileStart, kernelFileEnd);
+
+        return *this;
+    }
+
+    void BootloaderManager::boot()
+    {
+        // Validity barrier
+        if (!valid)
+        {
+            bootlog("Skip booting, bootloader manager not valid\n");
+            return;
+        }
+
+        if (kernelFileStart == nullptr || kernelFileEnd == nullptr)
+        {
+            bootlog("Kernel file not loaded, cannot boot\n");
+            return;
+        }
+
+        bootlog("! Booting kernel file\n");
+
+        void *destKernelPos = (void *)SRAM_BASE;
+        size_t resetHandlerDisplacement = 0x00000004;
+
+        void *resetHandler = (void *)((unsigned int)destKernelPos + resetHandlerDisplacement);
+
+        bootlog("! Will call reset handler at %p\n", resetHandler);
+
+        GlobalIrqLock lock;
+        bootlog("! GlobalLock acquired\n");
+
+        // FilesystemManager::instance().umountAll(); // Does not work, get stuck
+        FilesystemManager::instance().umount("/sd");
+        FilesystemManager::instance().umount("/dev");
+        FilesystemManager::instance().umount("/");
+        bootlog("! Unmounted all filesystem correctly\n");
+
+
+        bootlog("! Executing copy and run\n");
+        __asm__ __volatile__(
+            "push {r0-r5}         \n\t"
+            "mov r0, %[dst]       \n\t"
+            "mov r1, %[src]       \n\t"
+            "mov r2, %[end]       \n\t"
+            "ldr r4, [%[stk]]     \n\t"
+            "mov r5, %[run]       \n\t"
+            "cpsid i              \n\t"
+            "1:                   \n\t"
+            "cmp r1, r2           \n\t"
+            "beq 2f               \n\t"
+            "ldrb r3, [r1]        \n\t"
+            "strb r3, [r0]        \n\t"
+            "mov r3, #0           \n\t"
+            "strb r3, [r1]        \n\t"
+            "add r0, r0, #1       \n\t"
+            "add r1, r1, #1       \n\t"
+            "b 1b                 \n\t"
+            "2:                   \n\t"
+            "msr msp, r4          \n\t"
+            "bx r5                \n\t" : : [dst] "r"(destKernelPos),
+                                            [src] "r"(kernelFileStart),
+                                            [end] "r"(kernelFileEnd),
+                                            [stk] "r"(destKernelPos),
+                                            [run] "r"(resetHandler) : "memory");
+
+        // This point should never be reached
+
+        bootlog("KERNEL BOOT FAILED\n");
+    }
+
+    void BootloaderManager::assignTag(const std::string &tag, const std::string &value)
+    {
 #define CHECK_TAG(tagVar, tagVal, valueDst, valueSrc) \
     {                                                 \
         if (tagVar == tagVal)                         \
@@ -124,15 +285,10 @@ namespace miosix
             return;                                   \
         }                                             \
     }
-
-    void BootloaderManager::assignTag(const std::string &tag, const std::string &value)
-    {
         CHECK_TAG(tag, "default", DefaultFile, value)
         CHECK_TAG(tag, "alternative", AlternativeFile, value)
-        CHECK_TAG(tag, "verbose", Verbose, (value == "1"))
-        printf("Unknown tag: %s\n", tag.c_str());
-    }
+        CHECK_TAG(tag, "verbose", Verbose, true) //(value == "1")) TODO remove
 
 #undef CHECK_TAG
-
+    }
 }

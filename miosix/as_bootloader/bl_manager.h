@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <cstdarg>
 
 #include "kernelfiles/kfile.h"
 #include "kernelfiles/kfilefactory.h"
@@ -16,35 +17,59 @@ namespace miosix
     class BootloaderManager
     {
     public:
-        explicit BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir);
+        // Constructor with mountpoint and kernel files directory
+        explicit BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir, bool loadConfig = true);
 
-        BootloaderManager(const std::string &mountpoint) : BootloaderManager(mountpoint, "/kernels/") {}
+        // Constructor with mountpoint and default kernel files directory
+        BootloaderManager(const std::string &mountpoint, bool loadConfig = true) : BootloaderManager(mountpoint, "/kernels/", loadConfig) {}
 
-        BootloaderManager() : BootloaderManager("/sd/") {}
+        // Default constructor with default mountpoint and kernel files directory
+        BootloaderManager(bool loadConfig = true) : BootloaderManager("/sd/", loadConfig) {}
 
+        // Returns if the bootloader manager has been initialized correctly
         bool isValid() const { return valid; }
 
-        void loadConfig();
+        // Make bootloader load config from mountpoint/config.txt
+        BootloaderManager &loadConfig();
 
-        void assignTag(const std::string &tag, const std::string &value);
+        // Select a kernel file to boot
+        BootloaderManager &selectFile();
 
-        std::shared_ptr<KernelFile> selectFile();
+        // Loads the selected kernel file into memory
+        BootloaderManager &loadSelectedFile();
 
-        const std::vector<std::shared_ptr<KernelFile>> &getKernelFiles() const
-        {
-            return kernelFiles;
-        }
+        // Boot the loaded kernel file
+        void boot();
 
     private:
+        // Mountpoint where config and kernelDir are located
         std::string mountpoint;
+        // Directory where kernel files are located
         std::string kernelsDir;
-        
+
+        // Indicates if the bootloader manager has been initialized correctly
         bool valid;
+
+        // List of kernel files found in the kernels directory
         std::vector<std::shared_ptr<KernelFile>> kernelFiles;
 
+        // Selected kernel file
+        std::shared_ptr<KernelFile> selectedFile = nullptr;
+
+        // Pointers to the start and end of the loaded kernel file in memory
+        void *kernelFileStart = nullptr,
+             *kernelFileEnd = nullptr;
+
+
+        // Util function that checks if tag exists and assign value to its variable
+        void assignTag(const std::string &tag, const std::string &value);
+
+        // Util function to get the size of a file        
         size_t getFileSize(const std::string &filepath);
 
-// Configs definer
+        // CONGIFURATION VARIABLES //
+
+// Configs definer macro, create a private variable with a getter
 #define CONFIG_VAR(type, name, default) \
 private:                                \
     type name = default;                \

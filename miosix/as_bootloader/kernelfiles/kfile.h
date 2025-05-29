@@ -1,6 +1,6 @@
-//TODO must edit: LICENSE
+// TODO must edit: LICENSE
 
-//TODO must edit: #ifdef WITH_FATFS
+// TODO must edit: #ifdef WITH_FATFS
 
 #pragma once
 
@@ -32,10 +32,11 @@ namespace miosix
         virtual void load(void **kernelFileStart, void **kernelFileEnd)
         {
             *kernelFileStart = nullptr;
+            *kernelFileEnd = nullptr;
+            throw std::runtime_error("load not implemented for this kernel file type");
         }
     };
 } // namespace miosix
-
 
 // Ensure registration of kernel file classes
 #include "kfileregister.h"
