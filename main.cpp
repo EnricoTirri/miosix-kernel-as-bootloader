@@ -20,16 +20,16 @@ inline void copy_and_run(void *destKernelPos, void *kernelFileStart, void *kerne
 
     void *resetHandler = (void *)((unsigned int)destKernelPos + resetHandlerDisplacement);
 
-    printf(" + Will call reset handler at %p\n", resetHandler);
+    printf("+ Will call reset handler at %p\n", resetHandler);
 
     GlobalIrqLock lock;
-    printf(" + GlobalLock acquired\n");
+    printf("+ GlobalLock acquired\n");
 
     // FilesystemManager::instance().umountAll(); // Does not work, get stuck
     FilesystemManager::instance().umount("/sd");
     FilesystemManager::instance().umount("/dev");
     FilesystemManager::instance().umount("/");
-    printf(" + Unmounted all filesystem correctly\n");
+    printf("+ Unmounted all filesystem correctly\n");
 
     __asm__ __volatile__(
         "push {r0-r5}         \n\t"
