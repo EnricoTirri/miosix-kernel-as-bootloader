@@ -25,17 +25,17 @@ namespace miosix
             void *dest = malloc(filesize);
             if (dest == nullptr)
             {
-                printf(" - Failed to allocate memory\n");
+                printf("# Failed to allocate memory\n");
                 return;
             }
 
             // open file at directory/filename
             std::string fullPath = directory + "/" + filename;
             FILE *file = fopen(fullPath.c_str(), "rb");
-            printf(" + Opening kernel file: %s\n", fullPath.c_str());
+            printf("Opening kernel file: %s\n", fullPath.c_str());
             if (file == nullptr)
             {
-                printf(" - Failed to open file\n");
+                printf("# Failed to open file\n");
                 free(dest);
                 return;
             }
@@ -50,12 +50,12 @@ namespace miosix
                 {
                     if (feof(file))
                     {
-                        printf(" + Reached end of file\n");
+                        printf("Reached end of file\n");
                         break; // End of file reached
                     }
                     else
                     {
-                        printf(" - Error reading file");
+                        printf("# Error reading file");
 
                         if (ferror(file))
                             printf(": %d: %s\n", errno, strerror(errno));
@@ -71,7 +71,7 @@ namespace miosix
 
             if (totalBytesRead != filesize)
             {
-                printf(" - Error loading file: got %u/%u B\n", totalBytesRead, filesize);
+                printf("# Error loading file: got %u/%u B\n", totalBytesRead, filesize);
                 free(dest);
                 return;
             }

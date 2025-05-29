@@ -62,7 +62,7 @@ int main()
 {
     printf("========= Bootloader Started =========\n");
 
-    printf("Initializing Bootloader Manager...\n");
+    printf("+ Initializing Bootloader Manager...\n");
     BootloaderManager blManager("/sd/");
     {
         if (!blManager.isValid())
@@ -74,19 +74,19 @@ int main()
             printf("No kernel files found in the bootloader directory.\n");
             exit_bl();
         }
-        printf(" + Found %u kernel files.\n", kernelFilesCount);
+        printf("Found %u kernel files.\n", kernelFilesCount);
     }
-    printf("...OK\n");
+    printf("+ ...OK\n");
 
-    printf("Selecting kernel file...\n");
+    printf("+ Selecting kernel file...\n");
     std::shared_ptr<KernelFile> selected_kf;
     {
         // TODO selection of kernel file
         selected_kf = blManager.getKernelFiles().at(0);
     }
-    printf("...OK selected: %s\n", selected_kf->getFilename().c_str());
+    printf("+ ...OK selected: %s\n", selected_kf->getFilename().c_str());
 
-    printf("Loading kernel file in memory...\n");
+    printf("+ Loading kernel file in memory...\n");
     void *kernelFileStart;
     void *kernelFileEnd;
     {
@@ -94,17 +94,17 @@ int main()
 
         if (kernelFileStart == nullptr || kernelFileEnd == nullptr)
         {
-            printf("...KO.\n");
+            printf("+ ...KO.\n");
             exit_bl();
         }
     }
-    printf("...OK loaded from %p to %p.\n", kernelFileStart, kernelFileEnd);
+    printf("+ ...OK loaded from %p to %p.\n", kernelFileStart, kernelFileEnd);
 
-    printf("Copy and run kernel...\n");
+    printf("+ Copy and run kernel...\n");
     void *destKernelPos;
     {
         destKernelPos = (void *)SRAM_BASE; // TODO find correctly RAM base address
-        printf(" + Ram base address: %p\n", destKernelPos);
+        printf("Ram base address: %p\n", destKernelPos);
         copy_and_run(destKernelPos, kernelFileStart, kernelFileEnd);
     }
 
