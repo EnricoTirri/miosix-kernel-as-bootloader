@@ -2,6 +2,8 @@
 
 // TODO must edit: #ifdef WITH_FATFS
 
+#ifdef AS_BOOTLOADER
+
 #pragma once
 
 #include <iostream>
@@ -40,3 +42,5 @@ namespace miosix
 
 // Ensure registration of kernel file classes
 #include "kfileregister.h"
+
+#endif // AS_BOOTLOADER

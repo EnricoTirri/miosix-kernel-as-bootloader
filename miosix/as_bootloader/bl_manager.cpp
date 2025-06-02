@@ -1,6 +1,7 @@
 // TODO must edit: LICENSE
 
 // TODO must edit: #ifdef WITH_FATFS
+#ifdef AS_BOOTLOADER
 
 #include "bl_manager.h"
 #include <cstdio>
@@ -292,3 +293,5 @@ namespace miosix
 #undef CHECK_TAG
     }
 }
+
+#endif // AS_BOOTLOADER

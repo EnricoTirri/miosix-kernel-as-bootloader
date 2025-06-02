@@ -2,6 +2,8 @@
 
 //TODO must edit: #ifdef WITH_FATFS
 
+#ifdef AS_BOOTLOADER
+
 #pragma once
 
 #include <map>
@@ -58,3 +60,5 @@ namespace miosix
     };
 
 }
+
+#endif // AS_BOOTLOADER

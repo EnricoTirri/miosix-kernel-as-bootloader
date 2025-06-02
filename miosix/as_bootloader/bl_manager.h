@@ -2,6 +2,8 @@
 
 // TODO must edit: #ifdef WITH_FATFS
 
+#ifdef AS_BOOTLOADER
+
 #pragma once
 
 #include <string>
@@ -85,3 +87,5 @@ public:                                 \
 #undef CONFIG_VAR
     };
 }
+
+#endif // AS_BOOTLOADER

@@ -2,6 +2,8 @@
 
 // TODO must edit: #ifdef WITH_FATFS
 
+#ifdef AS_BOOTLOADER
+
 #pragma once
 
 #include "kfile.h"
@@ -77,3 +79,5 @@ namespace miosix
         }
     };
 }
+
+#endif // AS_BOOTLOADER

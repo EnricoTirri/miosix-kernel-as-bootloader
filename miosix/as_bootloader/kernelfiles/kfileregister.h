@@ -2,6 +2,8 @@
 
 //TODO must edit: #ifdef WITH_FATFS
 
+#ifdef AS_BOOTLOADER
+
 #pragma once
 
 #include "kfilefactory.h"
@@ -27,3 +29,5 @@
 
 #include "bin_kfile.h"
 REISTER_KERNELFILE_CLASS(".bin", BinKernelFile)
+
+#endif // AS_BOOTLOADER
