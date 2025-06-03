@@ -2,8 +2,6 @@
 
 //TODO must edit: #ifdef WITH_FATFS
 
-#ifdef AS_BOOTLOADER
-
 #pragma once
 
 #include <map>
@@ -12,6 +10,8 @@
 #include <string>
 
 #include "kfile.h"
+
+#ifdef AS_BOOTLOADER
 
 namespace miosix
 {

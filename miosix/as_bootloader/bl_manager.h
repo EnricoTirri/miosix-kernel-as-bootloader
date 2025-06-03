@@ -2,8 +2,6 @@
 
 // TODO must edit: #ifdef WITH_FATFS
 
-#ifdef AS_BOOTLOADER
-
 #pragma once
 
 #include <string>
@@ -11,8 +9,14 @@
 #include <memory>
 #include <cstdarg>
 
+#include "config/miosix_settings.h"
+
 #include "kernelfiles/kfile.h"
 #include "kernelfiles/kfilefactory.h"
+
+
+
+#ifdef AS_BOOTLOADER
 
 namespace miosix
 {

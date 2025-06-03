@@ -2,12 +2,12 @@
 
 // TODO must edit: #ifdef WITH_FATFS
 
-#ifdef AS_BOOTLOADER
-
 #pragma once
 
 #include <iostream>
 #include <string>
+
+#ifdef AS_BOOTLOADER
 
 namespace miosix
 {

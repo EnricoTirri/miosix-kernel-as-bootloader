@@ -2,12 +2,12 @@
 
 //TODO must edit: #ifdef WITH_FATFS
 
-#ifdef AS_BOOTLOADER
-
 #pragma once
 
 #include "kfilefactory.h"
 #include "kfile.h"
+
+#ifdef AS_BOOTLOADER
 
 #define REISTER_KERNELFILE_CLASS(EXT, CLASS)                                                                \
     namespace miosix                                                                                            \

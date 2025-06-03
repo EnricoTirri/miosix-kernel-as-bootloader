@@ -1,7 +1,6 @@
 // TODO must edit: LICENSE
 
 // TODO must edit: #ifdef WITH_FATFS
-#ifdef AS_BOOTLOADER
 
 #include "bl_manager.h"
 #include <cstdio>
@@ -10,6 +9,8 @@
 #include <sys/stat.h>
 #include <filesystem/file_access.h>
 #include "kernel/logging.h"
+
+#ifdef AS_BOOTLOADER
 
 namespace miosix
 {

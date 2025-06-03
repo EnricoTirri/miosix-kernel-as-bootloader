@@ -329,6 +329,21 @@ const unsigned int MAX_PTHREAD_KEYS=2;
 
 
 //
+// RAM bootable kernel related options.
+//
+
+/// \def RAM_BOOTABLE
+/// Allows to enable/disable RAM bootable feauture
+/// By default it is not defined (Kernel bootable from flash)
+//#define RAM_BOOTABLE
+
+/// \def RAM_BOOTABLE
+/// Allows to enable/disable Kernel as bootloader feauture
+/// By default it is not defined (Kernel runs main program)
+#define AS_BOOTLOADER
+
+
+//
 // Other low level kernel options. There is usually no need to modify these.
 //
 
