@@ -238,19 +238,27 @@ namespace miosix
         bootlog("! Unmounted all filesystem correctly\n");
 
         size_t resetHandlerDisplacement = 0x4;
-        void *resetHandler = (void *)((unsigned int)kernelFileStart + resetHandlerDisplacement);
-        bootlog("! Will call reset handler at %p\n", resetHandler);
+        unsigned int *resetHandlerAddressPointer = (unsigned int*)((unsigned int)kernelFileStart + resetHandlerDisplacement);
+        bootlog("! Reset handler address pointer at %p\n", (void *)resetHandlerAddressPointer);
 
+        unsigned int resetHandlerAddress = *resetHandlerAddressPointer;
+        bootlog("! Reset handler address value: %08x\n", resetHandlerAddress);
 
-        // NON SO PERCHE' MA GENERA HARDFAULT
+        unsigned int relativeResetHandlerAddress = resetHandlerAddress - SRAM_BASE + (unsigned int)kernelFileStart;
+        bootlog("! Relative reset handler address: %08x\n", relativeResetHandlerAddress);
+
+        void *resetHandlerAddressPtr = (void *)relativeResetHandlerAddress;
+        bootlog("! Will call reset handler at: %p\n", resetHandlerAddressPtr);
+
         __asm__ __volatile__(
-            "cpsid i              \n\t"
-            "mov r0, %[str]       \n\t"
-            "mov r1, %[end]       \n\t"
-            "mov r2, %[rst]       \n\t"
-            "bx r2                \n\t" : : [str] "r"(kernelFileStart),
-                                            [end] "r"(kernelFileEnd),
-                                            [rst] "r"(resetHandler) :);
+            "cpsid i              \n\t" // Disable interrupts
+            "mov r0, %[str]       \n\t" // Load kernelFileStart address into r0
+            "mov r1, %[end]     \n\t" // Load the Address of resetHandler into r1
+            "mov r2, %[rst]       \n\t" // Load kernelFileEnd address into r1
+            "bx r2                \n\t" // Branch to the reset handler
+            : : [str] "r"(kernelFileStart),
+                [end] "r"(kernelFileEnd),
+                [rst] "r"(resetHandlerAddressPtr) :);
 
         // This point should never be reached
 
