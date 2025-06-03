@@ -228,13 +228,6 @@ namespace miosix
 
         bootlog("! Booting kernel file\n");
 
-        void *destKernelPos = (void *)SRAM_BASE;
-        size_t resetHandlerDisplacement = 0x00000004;
-
-        void *resetHandler = (void *)((unsigned int)destKernelPos + resetHandlerDisplacement);
-
-        bootlog("! Will call reset handler at %p\n", resetHandler);
-
         GlobalIrqLock lock;
         bootlog("! GlobalLock acquired\n");
 
@@ -244,33 +237,20 @@ namespace miosix
         FilesystemManager::instance().umount("/");
         bootlog("! Unmounted all filesystem correctly\n");
 
+        size_t resetHandlerDisplacement = 0x4;
+        void *resetHandler = (void *)((unsigned int)kernelFileStart + resetHandlerDisplacement);
+        bootlog("! Will call reset handler at %p\n", resetHandler);
 
-        bootlog("! Executing copy and run\n");
+
+        // NON SO PERCHE' MA GENERA HARDFAULT
         __asm__ __volatile__(
-            "push {r0-r5}         \n\t"
-            "mov r0, %[dst]       \n\t"
-            "mov r1, %[src]       \n\t"
-            "mov r2, %[end]       \n\t"
-            "ldr r4, [%[stk]]     \n\t"
-            "mov r5, %[run]       \n\t"
             "cpsid i              \n\t"
-            "1:                   \n\t"
-            "cmp r1, r2           \n\t"
-            "beq 2f               \n\t"
-            "ldrb r3, [r1]        \n\t"
-            "strb r3, [r0]        \n\t"
-            "mov r3, #0           \n\t"
-            "strb r3, [r1]        \n\t"
-            "add r0, r0, #1       \n\t"
-            "add r1, r1, #1       \n\t"
-            "b 1b                 \n\t"
-            "2:                   \n\t"
-            "msr msp, r4          \n\t"
-            "bx r5                \n\t" : : [dst] "r"(destKernelPos),
-                                            [src] "r"(kernelFileStart),
+            "mov r0, %[str]       \n\t"
+            "mov r1, %[end]       \n\t"
+            "mov r2, %[rst]       \n\t"
+            "bx r2                \n\t" : : [str] "r"(kernelFileStart),
                                             [end] "r"(kernelFileEnd),
-                                            [stk] "r"(destKernelPos),
-                                            [run] "r"(resetHandler) : "memory");
+                                            [rst] "r"(resetHandler) :);
 
         // This point should never be reached
 

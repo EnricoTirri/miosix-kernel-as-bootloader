@@ -183,7 +183,14 @@ ifeq ($(OPT_BOARD),stm32f407vg_stm32f4discovery)
     ## 3) Same as 1) but space has been reserved for a process pool, allowing
     ##    to configure the kernel with "#define WITH_PROCESSES"
     LINKER_SCRIPT_PATH := arch/cortexM4_stm32f4/stm32f407vg_stm32f4discovery/
+
+    ## Script for code in Flash
     LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom.ld
+
+    ## Script for code in RAM
+    #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom_ramBootable.ld
+
+    ## Script for code in Flash + Processes
     #LINKER_SCRIPT := $(LINKER_SCRIPT_PATH)stm32_1m+192k_rom_processes.ld
 
     ## Select clock frequency (HSE_VALUE is the xtal on board, fixed)
