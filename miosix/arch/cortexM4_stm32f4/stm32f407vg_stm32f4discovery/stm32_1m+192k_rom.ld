@@ -76,6 +76,7 @@ SECTIONS
     /* .text section: code goes to flash */
     .text :
     {
+        _vtor = .;
         /* Startup code must go at address 0 */
         KEEP(*(.isr_vector))
         

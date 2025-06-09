@@ -249,11 +249,16 @@ void SystemInit(void)
   SetSysClock();
   
   /* Configure the Vector Table location add offset address ------------------*/
+#warning "MODIFIED VTOR ASSIGNMENT"
+extern char _vtor asm("_vtor"); //defined in the linker script
+SCB->VTOR = (uint32_t) &_vtor;
+/*
 #ifdef VECT_TAB_SRAM
-  SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
+  SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; // Vector Table Relocation in Internal SRAM
 #else
-  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; // Vector Table Relocation in Internal FLASH
 #endif
+*/
 }
 
 /**

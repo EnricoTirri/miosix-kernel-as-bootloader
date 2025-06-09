@@ -77,6 +77,7 @@ SECTIONS
     .text :
     {
         _text = .;
+        _vtor = .;
         /* Startup code must go at address 0 */
         KEEP(*(.isr_vector))
         
