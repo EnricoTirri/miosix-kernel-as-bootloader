@@ -62,15 +62,15 @@ namespace miosix
         // Selected kernel file
         std::shared_ptr<KernelFile> selectedFile = nullptr;
 
-        // Pointers to the start and end of the loaded kernel file in memory
+        // Pointers to the start and end of the loaded kernel file in memory and the relocation address
         void *kernelFileStart = nullptr,
-             *kernelFileEnd = nullptr;
-
+             *kernelFileEnd = nullptr,
+             *relocationAddress = nullptr;
 
         // Util function that checks if tag exists and assign value to its variable
         void assignTag(const std::string &tag, const std::string &value);
 
-        // Util function to get the size of a file        
+        // Util function to get the size of a file
         size_t getFileSize(const std::string &filepath);
 
         // CONGIFURATION VARIABLES //

@@ -177,7 +177,13 @@ SECTIONS
     } > smallram
     _bss_end = .;
 
-    _text_placement = LOADADDR(.text);
+
+    /* place the memory address of where text assume to be placed as last word of .bin file */
+    .relocation_placement : ALIGN(4)
+    {
+        LONG(_text)
+    } > flash
+    
+
     _end = _end + _etext - _text;
-    /*PROVIDE(end = .);*/
 }

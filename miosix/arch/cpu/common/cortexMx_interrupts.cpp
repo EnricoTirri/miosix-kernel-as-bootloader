@@ -453,37 +453,6 @@ void __attribute__((naked)) Reset_Handler()
      * miosix::IRQkernelBootEntryPoint()
      */
 
-#ifdef RAM_BOOTABLE
-
-    /* If we are booting from the bootloader, we expect to find
-     *      - in r0 the address of start of loaded kernel
-     *      - in r1 the address of end of loaded kernel
-     * we will use them in order to copy the kernel in the "right place"
-    */
-
-    // in r0 we have the address of the start of the kernel file
-    // in r1 we have the address of the end of the kernel file
-    // we will copy the kernel from r0 to the address specified by _text all in assembly
-    __asm__ __volatile__(
-        "cpsid i                    \n\t"         // Disable interrupts
-        "ldr r2, =_text   \n\t"         // Load destination address (_text) into r2
-        "1:                         \n\t"         // Loop label
-        "cmp r0, r1                 \n\t"         // Compare source address (r0) with end address (r1)
-        "beq 2f                     \n\t"         // If r0 == r1, branch to end of function
-        "ldrb r3, [r0]              \n\t"         // Load a byte from source (r0) into r3
-        "strb r3, [r2]              \n\t"         // Store the byte from r3 into destination (r2)
-        "add r2, r2, #1             \n\t"         // Increment destination address (r2)
-        "add r0, r0, #1             \n\t"         // Increment source address (r0)
-        "b 1b                       \n\t"         // Branch back to loop label
-        "2:                         \n\t"         // End of function
-        "ldr r0, =_heap_end         \n\t"         // Get pointer to heap end
-        "msr psp, r0                \n\t"         // Set PSP to heap end
-        "movs r0, #2                \n\n"         // Set Control register to use process stack
-        "msr control, r0            \n\t"         // Activate PSP
-        "isb                        \n\t"         // Instruction Synchronization Barrier
-        "b _ZN6miosix23IRQkernelBootEntryPointEv" // Continue boot
-        ::: "r2", "r3", "memory");
-#else
     asm volatile("cpsid i                                 \n\t" //Disable interrupts
                  "bl  _ZN6miosix21IRQmemoryAndClockInitEv \n\t" //Initialize PLL,FLASH,XRAM
                  "ldr r0,  =_heap_end                     \n\t" //Get pointer to heap end
@@ -492,8 +461,6 @@ void __attribute__((naked)) Reset_Handler()
                  "msr control, r0                         \n\t" //Activate PSP
                  "isb                                     \n\t" //Required when switching stack
                  "bl  _ZN6miosix23IRQkernelBootEntryPointEv");  //Continue boot
-
-#endif //RAM_BOOTABLE
 }
 
 void NMI_Handler()

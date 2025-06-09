@@ -18,8 +18,9 @@ namespace miosix
         BinKernelFile(const std::string &dir, const std::string &fn, size_t size)
             : KernelFile(dir, fn, size) {}
 
-        void load(void **kernelFileStart, void **kernelFileEnd)
+        void load(void **relocationAddress, void **kernelFileStart, void **kernelFileEnd)
         {
+            *relocationAddress = nullptr;
             *kernelFileStart = nullptr;
             *kernelFileEnd = nullptr;
 
@@ -74,8 +75,16 @@ namespace miosix
                 throw new std::runtime_error("Error loading kernel file: got " + std::to_string(totalBytesRead) + "/" + std::to_string(filesize) + " B");
             }
 
+
+            // Set file start and end address known that the last byte is not usefull for the kernel itself,
+            // since we expect it to contain the relocation address of where the .bin file should be placed
+            // (it is usefull for the bootloader)
             *kernelFileStart = dest;
-            *kernelFileEnd = (void *)((unsigned int)dest + totalBytesRead);
+            *kernelFileEnd = (void *)((unsigned int)dest + totalBytesRead - sizeof(unsigned int)); 
+
+            // Obtain relocation address, we expect it to be the last 4 bytes of the file
+            unsigned int *relocAddrPtr = (unsigned int *)*kernelFileEnd;
+            *relocationAddress = (void *)*relocAddrPtr;
         }
     };
 }

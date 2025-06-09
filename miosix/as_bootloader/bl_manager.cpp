@@ -95,6 +95,7 @@ namespace miosix
             bootlog("Skip selection, bootloader manager not valid");
             return *this;
         }
+        selectedFile = nullptr;
 
         // Check if a default or alternative file have been selected
         std::string t = (DefaultFile != "" ? DefaultFile : AlternativeFile);
@@ -192,21 +193,25 @@ namespace miosix
 
         bootlog("Loading selected kernel file ... ");
 
+        relocationAddress = nullptr;
         kernelFileStart = nullptr;
         kernelFileEnd = nullptr;
 
         // Load the selected kernel file into memory
-        selectedFile->load(&kernelFileStart, &kernelFileEnd);
-        if (kernelFileStart == nullptr || kernelFileEnd == nullptr)
+        try
         {
+            selectedFile->load(&relocationAddress, &kernelFileStart, &kernelFileEnd);
+        }
+        catch (const std::exception &e)
+        {
+            bootlog("KO : %s\n", e.what());
+            relocationAddress = nullptr;
             kernelFileStart = nullptr;
             kernelFileEnd = nullptr;
+            return *this;
         }
 
-        if (kernelFileStart == nullptr)
-            bootlog("KO loading kernel file\n");
-        else
-            bootlog("OK loaded from %p to %p.\n", kernelFileStart, kernelFileEnd);
+        bootlog("OK\n\t - Loaded from %p to %p.\n\t - Relocation at %p\n", kernelFileStart, kernelFileEnd, relocationAddress);
 
         return *this;
     }
@@ -220,7 +225,7 @@ namespace miosix
             return;
         }
 
-        if (kernelFileStart == nullptr || kernelFileEnd == nullptr)
+        if (kernelFileStart == nullptr || kernelFileEnd == nullptr || relocationAddress == nullptr)
         {
             bootlog("Kernel file not loaded, cannot boot\n");
             return;
@@ -228,40 +233,45 @@ namespace miosix
 
         bootlog("! Booting kernel file\n");
 
-        GlobalIrqLock lock;
+        //GlobalIrqLock lock;
         bootlog("! GlobalLock acquired\n");
 
-        // FilesystemManager::instance().umountAll(); // Does not work, get stuck
         FilesystemManager::instance().umount("/sd");
         FilesystemManager::instance().umount("/dev");
         FilesystemManager::instance().umount("/");
         bootlog("! Unmounted all filesystem correctly\n");
 
-        size_t resetHandlerDisplacement = 0x4;
-        unsigned int *resetHandlerAddressPointer = (unsigned int*)((unsigned int)kernelFileStart + resetHandlerDisplacement);
-        bootlog("! Reset handler address pointer at %p\n", (void *)resetHandlerAddressPointer);
-
-        unsigned int resetHandlerAddress = *resetHandlerAddressPointer;
-        bootlog("! Reset handler address value: %08x\n", resetHandlerAddress);
-
-        unsigned int relativeResetHandlerAddress = resetHandlerAddress - SRAM_BASE + (unsigned int)kernelFileStart;
-        bootlog("! Relative reset handler address: %08x\n", relativeResetHandlerAddress);
-
-        void *resetHandlerAddressPtr = (void *)relativeResetHandlerAddress;
-        bootlog("! Will call reset handler at: %p\n", resetHandlerAddressPtr);
+        // modify the VTOR to point to the relocation address
 
         __asm__ __volatile__(
-            "cpsid i              \n\t" // Disable interrupts
-            "mov r0, %[str]       \n\t" // Load kernelFileStart address into r0
-            "mov r1, %[end]     \n\t" // Load the Address of resetHandler into r1
-            "mov r2, %[rst]       \n\t" // Load kernelFileEnd address into r1
-            "bx r2                \n\t" // Branch to the reset handler
-            : : [str] "r"(kernelFileStart),
-                [end] "r"(kernelFileEnd),
-                [rst] "r"(resetHandlerAddressPtr) :);
-
+            "cpsid i            \n\t" // Disable interrupts
+            "mov r0, %[reloc]   \n\t" // Relocation address / pointer to main stack pointer value
+            // Copy the kernel file to relocation address
+            "mov r1, r0         \n\t" // Dest
+            "mov r2, %[start]   \n\t" // Source start
+            "mov r3, %[end]     \n\t" // Source end
+            "cmp r2, r3         \n\t" // Check if start != end
+            "beq 2f             \n\t" // If size = 0 skip copy
+            // Copy loop
+            "1:                 \n\t"
+            "ldrb r4, [r2], #1  \n\t" // Load byte from source and increment source pointer
+            "strb r4, [r1], #1  \n\t" // Store byte to destination and increment destination pointer
+            "cmp r2, r3         \n\t" // Check if we reached the end
+            "bne 1b             \n\t" // If not, repeat
+            // Simulate hardware reset
+            "2:                 \n\t"
+            "ldr r4, [r0]       \n\t" // Load value at relocation address (initial MSP) into r4
+            "msr msp, r4        \n\t" // Set the main stack pointer to value at the relocation address
+            "add r0, r0, #4     \n\t" // second word of file
+            "ldr r0, [r0]       \n\t" // Get address of reset handler function
+            "bx r0              \n\t" // Call reset handler  
+            ::
+            [reloc] "r"(relocationAddress),
+            [start] "r"(kernelFileStart),
+            [end] "r"(kernelFileEnd)
+            : "r0","r1","r2","r3","r4", "memory"
+        );
         // This point should never be reached
-
         bootlog("KERNEL BOOT FAILED\n");
     }
 

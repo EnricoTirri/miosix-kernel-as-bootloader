@@ -31,12 +31,15 @@ namespace miosix
 
         size_t getSize() const { return filesize; }
 
-        virtual void load(void **kernelFileStart, void **kernelFileEnd)
+        virtual void load(void **relocationAddress, void **kernelFileStart, void **kernelFileEnd)
         {
+            *relocationAddress = nullptr;
             *kernelFileStart = nullptr;
             *kernelFileEnd = nullptr;
             throw std::runtime_error("load not implemented for this kernel file type");
         }
+
+        
     };
 } // namespace miosix
 
