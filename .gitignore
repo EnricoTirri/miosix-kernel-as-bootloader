@@ -24,3 +24,6 @@ build
 # Exclude Mac OS X temporary
 ._*
 .DS_Store
+
+# Exclude vsCode workspace settings
+.vscode/
