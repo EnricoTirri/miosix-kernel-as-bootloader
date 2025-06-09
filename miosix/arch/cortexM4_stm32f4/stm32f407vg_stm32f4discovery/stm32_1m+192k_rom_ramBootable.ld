@@ -59,7 +59,6 @@ ENTRY(_ZN6miosix13Reset_HandlerEv)
 /* specify the memory areas  */
 MEMORY
 {
-    flash(rx)    : ORIGIN = 0x08000000, LENGTH =   1M
     /*
      * Note, the small ram starts at 0x10000000 but it is necessary to add the
      * size of the main stack, so it is 0x10000200.
@@ -73,7 +72,7 @@ SECTIONS
 {
     . = 0;
     
-    /* .text section: code goes to flash */
+    /* .text section: code goes to largeram */
     .text :
     {
         _text = .;
@@ -143,27 +142,28 @@ SECTIONS
         KEEP (*(EXCLUDE_FILE (*crtend.o) .dtors))
         KEEP (*(SORT(.dtors.*)))
         KEEP (*crtend.o(.dtors))
-    } > largeram AT > flash
+    } > largeram
 
     /* .ARM.exidx is sorted, so has to go in its own output section.  */
     __exidx_start = .;
     .ARM.exidx :
     {
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-    } > flash
+    } > largeram
     __exidx_end = .;
 
-	/* .data section: global variables go to ram, but also store a copy to
-       flash to initialize them */
+	/* .data section: global variables go to smallram, but also store a copy to
+       largeram to initialize them */
     .data : ALIGN(8)
     {
+        _etext = .;
         _data = .;
         *(.data)
         *(.data.*)
         *(.gnu.linkonce.d.*)
         . = ALIGN(8);
         _edata = .;
-    } > smallram AT > flash
+    } > smallram AT > largeram
     _etext = LOADADDR(.data);
 
     /* .bss section: uninitialized global variables go to ram */
@@ -182,7 +182,7 @@ SECTIONS
     .relocation_placement : ALIGN(4)
     {
         LONG(_text)
-    } > flash
+    } > largeram
     
 
     _end = _end + _etext - _text;
