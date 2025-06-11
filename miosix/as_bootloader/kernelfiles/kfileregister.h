@@ -7,8 +7,6 @@
 #include "kfilefactory.h"
 #include "kfile.h"
 
-#ifdef AS_BOOTLOADER
-
 #define REISTER_KERNELFILE_CLASS(EXT, CLASS)                                                                \
     namespace miosix                                                                                            \
     {                                                                                                       \
@@ -29,5 +27,3 @@
 
 #include "bin_kfile.h"
 REISTER_KERNELFILE_CLASS(".bin", BinKernelFile)
-
-#endif // AS_BOOTLOADER

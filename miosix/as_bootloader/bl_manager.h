@@ -14,10 +14,6 @@
 #include "kernelfiles/kfile.h"
 #include "kernelfiles/kfilefactory.h"
 
-
-
-#ifdef AS_BOOTLOADER
-
 namespace miosix
 {
     class BootloaderManager
@@ -91,5 +87,3 @@ public:                                 \
 #undef CONFIG_VAR
     };
 }
-
-#endif // AS_BOOTLOADER

@@ -11,8 +11,6 @@
 
 #include "kfile.h"
 
-#ifdef AS_BOOTLOADER
-
 namespace miosix
 {
     class KernelFileFactory
@@ -60,5 +58,3 @@ namespace miosix
     };
 
 }
-
-#endif // AS_BOOTLOADER

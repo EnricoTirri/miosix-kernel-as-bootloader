@@ -9,8 +9,7 @@
 #include <sys/stat.h>
 #include <filesystem/file_access.h>
 #include "kernel/logging.h"
-
-#ifdef AS_BOOTLOADER
+#include "bl_manager.h"
 
 namespace miosix
 {
@@ -292,5 +291,3 @@ namespace miosix
 #undef CHECK_TAG
     }
 }
-
-#endif // AS_BOOTLOADER

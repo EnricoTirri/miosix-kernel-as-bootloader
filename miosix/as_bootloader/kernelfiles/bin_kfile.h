@@ -8,8 +8,6 @@
 #include "util/util.h"
 #include "string.h"
 
-#ifdef AS_BOOTLOADER
-
 namespace miosix
 {
     class BinKernelFile : public KernelFile
@@ -88,5 +86,3 @@ namespace miosix
         }
     };
 }
-
-#endif // AS_BOOTLOADER
