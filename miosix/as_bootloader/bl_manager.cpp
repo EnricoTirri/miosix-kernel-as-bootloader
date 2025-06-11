@@ -92,9 +92,10 @@ namespace miosix
         // Validity barrier
         if (!valid)
         {
-            bootlog("Skip selection, bootloader manager not valid");
+            bootlog("Skip selection, bootloader manager not valid\n");
             return *this;
         }
+
         selectedFile = nullptr;
 
         // Check if a default or alternative file have been selected
@@ -242,8 +243,6 @@ namespace miosix
         FilesystemManager::instance().umount("/");
         bootlog("! Unmounted all filesystem correctly\n");
 
-        // modify the VTOR to point to the relocation address
-
         __asm__ __volatile__(
             "cpsid i            \n\t" // Disable interrupts
             "mov r0, %[reloc]   \n\t" // Relocation address / pointer to main stack pointer value
@@ -265,13 +264,13 @@ namespace miosix
             "msr msp, r4        \n\t" // Set the main stack pointer to value at the relocation address
             "add r0, r0, #4     \n\t" // second word of file
             "ldr r0, [r0]       \n\t" // Get address of reset handler function
-            "bx r0              \n\t" // Call reset handler  
-            ::
-            [reloc] "r"(relocationAddress),
-            [start] "r"(kernelFileStart),
-            [end] "r"(kernelFileEnd)
-            : "r0","r1","r2","r3","r4", "memory"
-        );
+            "bx r0              \n\t" // Call reset handler
+            :
+            : [reloc] "r"(relocationAddress),
+              [start] "r"(kernelFileStart),
+              [end] "r"(kernelFileEnd)
+            : "r0", "r1", "r2", "r3", "r4", "memory");
+
         // This point should never be reached
         bootlog("KERNEL BOOT FAILED\n");
     }
