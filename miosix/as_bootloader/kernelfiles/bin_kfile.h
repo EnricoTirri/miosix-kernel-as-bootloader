@@ -4,8 +4,9 @@
 
 #pragma once
 
+#include <stdexcept>
+
 #include "kfile.h"
-#include "util/util.h"
 #include "string.h"
 
 namespace miosix
