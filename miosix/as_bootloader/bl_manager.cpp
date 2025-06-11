@@ -235,7 +235,7 @@ namespace miosix
 
         bootlog("! Booting kernel file\n");
 
-        //GlobalIrqLock lock;
+        GlobalIrqLock lock;
         bootlog("! GlobalLock acquired\n");
 
         FilesystemManager::instance().umount("/sd");
