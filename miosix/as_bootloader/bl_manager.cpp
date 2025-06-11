@@ -125,6 +125,7 @@ namespace miosix
             printf("Select an index: ");
             fflush(stdout);
             scanf("%u", &selected);
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Prevents reading leftover characters
         }
 
         selectedFile = kernelFiles[selected];
