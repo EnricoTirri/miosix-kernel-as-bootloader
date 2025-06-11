@@ -114,18 +114,18 @@ namespace miosix
         }
 
         // Rollback on user choice
-        printf("Available kernel files:\n");
+        iprintf("Available kernel files:\n");
         int i = 0;
         for (auto file : kernelFiles)
         {
-            printf(" %d) %s\n", i++, file->getFilename().c_str());
+            iprintf(" %d) %s\n", i++, file->getFilename().c_str());
         }
         size_t selected = -1;
         while (selected < 0 || selected >= kernelFiles.size())
         {
-            printf("Select an index: ");
+            iprintf("Select an index: ");
             fflush(stdout);
-            scanf("%u", &selected);
+            iscanf("%u", &selected);
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Prevents reading leftover characters
         }
 
@@ -134,7 +134,7 @@ namespace miosix
         if (selectedFile != nullptr)
             bootlog("User selected kernel file: %s\n", selectedFile->getFilename().c_str());
         else
-            printf("Unwanted error : file selected is null\n");
+            iprintf("Unwanted error : file selected is null\n");
 
         return *this;
     }
