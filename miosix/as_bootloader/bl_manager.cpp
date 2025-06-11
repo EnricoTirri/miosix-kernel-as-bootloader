@@ -20,14 +20,14 @@ namespace miosix
         : mountpoint(mountpoint), kernelsDir(kernelsDir), valid(false)
     {
         // Check if mountpoint is a valid directory
-        bootlog("Checking mountpoint: %s ... ", mountpoint.c_str());
+        bootloaderlog("Checking mountpoint: %s ... ", mountpoint.c_str());
         DIR *mountDir = opendir(mountpoint.c_str());
         if (!mountDir)
         {
-            bootlog("KO : does not exist or is not a directory\n");
+            bootloaderlog("KO : does not exist or is not a directory\n");
             return;
         }
-        bootlog("OK\n");
+        bootloaderlog("OK\n");
         closedir(mountDir);
 
         // Try load configuration if requested
@@ -36,7 +36,7 @@ namespace miosix
             this->loadConfig();
         }
 
-        bootlog("Initializing Bootloader Manager ... ");
+        bootloaderlog("Initializing Bootloader Manager ... ");
 
         try
         {
@@ -74,11 +74,11 @@ namespace miosix
         }
         catch (const std::exception &e)
         {
-            bootlog("KO : %s\n", e.what());
+            bootloaderlog("KO : %s\n", e.what());
             return;
         }
 
-        bootlog("OK : %u kernel files\n", kernelFiles.size());
+        bootloaderlog("OK : %u kernel files\n", kernelFiles.size());
     }
 
     size_t BootloaderManager::getFileSize(const std::string &filepath)
@@ -94,7 +94,7 @@ namespace miosix
         // Validity barrier
         if (!valid)
         {
-            bootlog("Skip selection, bootloader manager not valid\n");
+            bootloaderlog("Skip selection, bootloader manager not valid\n");
             return *this;
         }
 
@@ -109,7 +109,7 @@ namespace miosix
                 if (t == file->getFilename())
                 {
                     selectedFile = file;
-                    bootlog("Config selected kernel file: %s\n", selectedFile->getFilename().c_str());
+                    bootloaderlog("Config selected kernel file: %s\n", selectedFile->getFilename().c_str());
                     return *this;
                 }
             }
@@ -128,13 +128,16 @@ namespace miosix
             iprintf("Select an index: ");
             fflush(stdout);
             iscanf("%u", &selected);
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Prevents reading leftover characters
+
+            // Prevents invalid input from causing an infinite loop
+            std::cin.clear();
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
 
         selectedFile = kernelFiles[selected];
 
         if (selectedFile != nullptr)
-            bootlog("User selected kernel file: %s\n", selectedFile->getFilename().c_str());
+            bootloaderlog("User selected kernel file: %s\n", selectedFile->getFilename().c_str());
         else
             iprintf("Unwanted error : file selected is null\n");
 
@@ -143,7 +146,8 @@ namespace miosix
 
     BootloaderManager &BootloaderManager::loadConfig()
     {
-        bootlog("Loading configuration ... ");
+        bootloaderlog("Loading configuration ... ");
+        bool oldVerbose = Verbose; // Save old verbose state
 
         // Load configuration from the config.txt file in the mountpoint
         std::string configPath = mountpoint + "/config.txt";
@@ -151,7 +155,7 @@ namespace miosix
         FILE *configFile = fopen(configPath.c_str(), "r");
         if (!configFile)
         {
-            bootlog("KO continuing with defaults\n");
+            bootloaderlog("KO continuing with defaults\n");
             return *this;
         }
 
@@ -176,7 +180,7 @@ namespace miosix
         }
         fclose(configFile);
 
-        bootlog("OK\n");
+        if (oldVerbose) bootloaderlog("OK\n");
         return *this;
     }
 
@@ -185,17 +189,17 @@ namespace miosix
         // Validity barrier
         if (!valid)
         {
-            bootlog("Skip loading, bootloader manager not valid\n");
+            bootloaderlog("Skip loading, bootloader manager not valid\n");
             return *this;
         }
 
         if (selectedFile == nullptr)
         {
-            bootlog("Skip loading, no kernel file selected\n");
+            bootloaderlog("Skip loading, no kernel file selected\n");
             return *this;
         }
 
-        bootlog("Loading selected kernel file ... ");
+        bootloaderlog("Loading selected kernel file ... ");
 
         relocationAddress = nullptr;
         kernelFileStart = nullptr;
@@ -208,14 +212,22 @@ namespace miosix
         }
         catch (const std::exception &e)
         {
-            bootlog("KO : %s\n", e.what());
+            bootloaderlog("KO : %s\n", e.what());
+            relocationAddress = nullptr;
+            kernelFileStart = nullptr;
+            kernelFileEnd = nullptr;
+            return *this;
+        }
+        catch (...)
+        {
+            bootloaderlog("KO : unknown error\n");
             relocationAddress = nullptr;
             kernelFileStart = nullptr;
             kernelFileEnd = nullptr;
             return *this;
         }
 
-        bootlog("OK\n\t - Loaded from %p to %p.\n\t - Relocation at %p\n", kernelFileStart, kernelFileEnd, relocationAddress);
+        bootloaderlog("OK\n\t - Loaded from %p to %p.\n\t - Relocation at %p\n", kernelFileStart, kernelFileEnd, relocationAddress);
 
         return *this;
     }
@@ -225,25 +237,25 @@ namespace miosix
         // Validity barrier
         if (!valid)
         {
-            bootlog("Skip booting, bootloader manager not valid\n");
+            bootloaderlog("Skip booting, bootloader manager not valid\n");
             return;
         }
 
         if (kernelFileStart == nullptr || kernelFileEnd == nullptr || relocationAddress == nullptr)
         {
-            bootlog("Kernel file not loaded, cannot boot\n");
+            bootloaderlog("Kernel file not loaded, cannot boot\n");
             return;
         }
 
-        bootlog("! Booting kernel file\n");
+        bootloaderlog("! Booting kernel file\n");
 
         GlobalIrqLock lock;
-        bootlog("! GlobalLock acquired\n");
+        bootloaderlog("! GlobalLock acquired\n");
 
         FilesystemManager::instance().umount("/sd");
         FilesystemManager::instance().umount("/dev");
         FilesystemManager::instance().umount("/");
-        bootlog("! Unmounted all filesystem correctly\n");
+        bootloaderlog("! Unmounted all filesystem correctly\n");
 
         __asm__ __volatile__(
             "cpsid i            \n\t" // Disable interrupts
@@ -274,7 +286,7 @@ namespace miosix
             : "r0", "r1", "r2", "r3", "r4", "memory");
 
         // This point should never be reached
-        bootlog("KERNEL BOOT FAILED\n");
+        bootloaderlog("KERNEL BOOT FAILED\n");
     }
 
     void BootloaderManager::assignTag(const std::string &tag, const std::string &value)
@@ -289,8 +301,19 @@ namespace miosix
     }
         CHECK_TAG(tag, "default", DefaultFile, value)
         CHECK_TAG(tag, "alternative", AlternativeFile, value)
-        CHECK_TAG(tag, "verbose", Verbose, true) //(value == "1")) TODO remove
+        CHECK_TAG(tag, "verbose", Verbose, (value == "1"))
 
 #undef CHECK_TAG
+    }
+
+    void BootloaderManager::bootloaderlog(const char *fmt, ...)
+    {
+        if (!Verbose)
+            return;
+
+        va_list arg;
+        va_start(arg, fmt);
+        viprintf(fmt, arg);
+        va_end(arg);
     }
 }

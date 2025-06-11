@@ -66,6 +66,9 @@ namespace miosix
         // Util function to get the size of a file
         size_t getFileSize(const std::string &filepath);
 
+        // Util function to print bootloader logs
+        void bootloaderlog(const char *fmt, ...);
+
         // CONGIFURATION VARIABLES //
 
 // Configs definer macro, create a private variable with a getter
@@ -77,9 +80,15 @@ public:                                 \
     type get##name() const { return name; }
 
         // Config list
-        CONFIG_VAR(std::string, DefaultFile, "")
-        CONFIG_VAR(std::string, AlternativeFile, "")
-        CONFIG_VAR(bool, Verbose, false)
+        CONFIG_VAR(std::string, DefaultFile, "")     // Default file to boot
+        CONFIG_VAR(std::string, AlternativeFile, "") // Alternative file to boot if the default is not found
+        CONFIG_VAR(bool, Verbose,
+#ifdef WITH_BOOTLOG
+                   true
+#else
+                   false
+#endif
+                   ) // Verbose mode, default based on WITH_BOOTLOG
 
 #undef CONFIG_VAR
     };
