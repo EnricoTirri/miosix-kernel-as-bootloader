@@ -1,7 +1,5 @@
 // TODO must edit: LICENSE
 
-// TODO must edit: #ifdef WITH_FATFS
-
 #pragma once
 
 #include <stdexcept>
@@ -9,6 +7,7 @@
 #include "kfile.h"
 #include "string.h"
 
+#ifdef WITH_FATFS
 namespace miosix
 {
     class BinKernelFile : public KernelFile
@@ -87,3 +86,5 @@ namespace miosix
         }
     };
 }
+
+#endif // WITH_FATFS

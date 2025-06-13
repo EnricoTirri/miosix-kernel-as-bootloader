@@ -1,7 +1,5 @@
 // TODO must edit: LICENSE
 
-// TODO must edit: #ifdef WITH_FATFS
-
 #pragma once
 
 #include <string>
@@ -11,6 +9,7 @@
 #include "kernelfiles/kfile.h"
 #include "kernelfiles/kfilefactory.h"
 
+#ifdef WITH_FATFS
 namespace miosix
 {
     class BootloaderManager
@@ -93,3 +92,5 @@ public:                                 \
 #undef CONFIG_VAR
     };
 }
+
+#endif // WITH_FATFS

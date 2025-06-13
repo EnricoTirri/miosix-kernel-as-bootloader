@@ -1,7 +1,5 @@
 // TODO must edit: LICENSE
 
-// TODO must edit: #ifdef WITH_FATFS
-
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -14,6 +12,7 @@
 #include "kernel/logging.h"
 #include "bl_manager.h"
 
+#ifdef WITH_FATFS
 namespace miosix
 {
     BootloaderManager::BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir, bool loadConfig)
@@ -180,7 +179,8 @@ namespace miosix
         }
         fclose(configFile);
 
-        if (oldVerbose) bootloaderlog("OK\n");
+        if (oldVerbose)
+            bootloaderlog("OK\n");
         return *this;
     }
 
@@ -252,10 +252,7 @@ namespace miosix
         GlobalIrqLock lock;
         bootloaderlog("! GlobalLock acquired\n");
 
-        FilesystemManager::instance().umount("/sd");
-        FilesystemManager::instance().umount("/dev");
-        FilesystemManager::instance().umount("/");
-        bootloaderlog("! Unmounted all filesystem correctly\n");
+        bootloaderlog("! Setting up and running kernel ...\n");
 
         __asm__ __volatile__(
             "cpsid i            \n\t" // Disable interrupts
@@ -317,3 +314,5 @@ namespace miosix
         va_end(arg);
     }
 }
+
+#endif // WITH_FATFS

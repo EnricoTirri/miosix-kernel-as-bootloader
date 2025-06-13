@@ -1,11 +1,11 @@
 // TODO must edit: LICENSE
 
-// TODO must edit: #ifdef WITH_FATFS
 
 #pragma once
 
 #include <string>
 
+#ifdef WITH_FATFS
 namespace miosix
 {
 
@@ -42,3 +42,5 @@ namespace miosix
 
 // Ensure registration of kernel file classes
 #include "kfileregister.h"
+
+#endif // WITH_FATFS

@@ -1,6 +1,5 @@
 //TODO must edit: LICENSE
 
-//TODO must edit: #ifdef WITH_FATFS
 
 #pragma once
 
@@ -11,6 +10,7 @@
 
 #include "kfile.h"
 
+#ifdef WITH_FATFS
 namespace miosix
 {
     class KernelFileFactory
@@ -58,3 +58,5 @@ namespace miosix
     };
 
 }
+
+#endif // WITH_FATFS

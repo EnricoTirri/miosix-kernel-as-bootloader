@@ -2,7 +2,7 @@
 #include <cstdio>
 #include "miosix.h"
 
-#include "as_bootloader/bl_manager.h"
+#include "bl_manager.h"
 
 using namespace std;
 using namespace miosix;

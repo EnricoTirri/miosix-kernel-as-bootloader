@@ -1,7 +1,5 @@
 //TODO must edit: LICENSE
 
-//TODO must edit: #ifdef WITH_FATFS
-
 #pragma once
 
 #include "kfilefactory.h"
