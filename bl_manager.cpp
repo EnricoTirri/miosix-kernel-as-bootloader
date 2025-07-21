@@ -252,8 +252,32 @@ namespace miosix
         GlobalIrqLock lock;
         bootloaderlog("! GlobalLock acquired\n");
 
-        bootloaderlog("! Setting up and running kernel ...\n");
+        FilesystemManager &fs = FilesystemManager::instance();
+        
+        IRQbootloaderlog("! Unmounting sda ... ");
+        if(fs.getDevFs()->remove("sda")){
+            IRQbootloaderlog("OK\r\n");
+        }else{
+            IRQbootloaderlog("KO\r\n");
+        }
 
+        IRQbootloaderlog("! Unmounting all filesystems ... ");
+        fs.umountAll();
+        IRQbootloaderlog("DONE\r\n");
+
+        IRQbootloaderlog("! Checking all file are closed ... ");
+        if(fs.getDevFs()->areAllFilesClosed()){
+            IRQbootloaderlog("OK\r\n");
+        }else{
+            IRQbootloaderlog("KO\r\n");
+        }
+
+        IRQbootloaderlog("! Setting up and running kernel ...\r\n\n");
+        copyRun(relocationAddress, kernelFileStart, kernelFileEnd);
+    }
+
+    [[noreturn]] void __attribute__((naked)) BootloaderManager::copyRun(void *relocationAddress, void *kernelFileStart, void *kernelFileEnd)
+    {
         __asm__ __volatile__(
             "cpsid i            \n\t" // Disable interrupts
             "mov r0, %[reloc]   \n\t" // Relocation address / pointer to main stack pointer value
@@ -312,6 +336,14 @@ namespace miosix
         va_start(arg, fmt);
         viprintf(fmt, arg);
         va_end(arg);
+    }
+
+    void BootloaderManager::IRQbootloaderlog(const char *fmt)
+    {
+        if (!Verbose)
+            return;
+
+        miosix::DefaultConsole::instance().IRQget()->IRQwrite(fmt);
     }
 }
 

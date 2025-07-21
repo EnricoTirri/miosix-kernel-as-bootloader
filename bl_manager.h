@@ -65,10 +65,14 @@ namespace miosix
         // Util function to get the size of a file
         size_t getFileSize(const std::string &filepath);
 
-        // Util function to print bootloader logs
+        // Util functions to print bootloader logs
         void bootloaderlog(const char *fmt, ...);
+        void IRQbootloaderlog(const char *fmt);
 
-        // CONGIFURATION VARIABLES //
+        // Function to copy the kernel file to the relocation address and jump to the reset handler
+        [[noreturn]] void __attribute__((naked)) copyRun(void *relocationAddress, void *kernelFileStart, void *kernelFileEnd);
+
+        // CONFIGURATION VARIABLES //
 
 // Configs definer macro, create a private variable with a getter
 #define CONFIG_VAR(type, name, default) \
