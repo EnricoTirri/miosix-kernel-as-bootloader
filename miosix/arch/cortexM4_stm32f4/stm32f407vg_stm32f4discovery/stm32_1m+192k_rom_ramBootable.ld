@@ -156,7 +156,6 @@ SECTIONS
        largeram to initialize them */
     .data : ALIGN(8)
     {
-        _etext = .;
         _data = .;
         *(.data)
         *(.data.*)
