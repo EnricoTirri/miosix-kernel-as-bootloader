@@ -13,6 +13,8 @@ image.uf2
 *.o
 *.a
 *.d
+*.bin
+*.elf
 
 # Exclude build directories and host executables
 miosix/_tools/filesystems/buildromfs
@@ -25,5 +27,5 @@ build
 ._*
 .DS_Store
 
-# Exclude vsCode workspace settings
+# Exclude IDE workspace settings
 .vscode/
