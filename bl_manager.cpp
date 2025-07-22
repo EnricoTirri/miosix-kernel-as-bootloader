@@ -16,7 +16,7 @@
 namespace miosix
 {
     BootloaderManager::BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir, bool loadConfig)
-        : mountpoint(mountpoint), kernelsDir(kernelsDir), valid(false)
+        : mountpoint(mountpoint), kernelsDir(kernelsDir)
     {
         // Try load configuration if requested
         if (loadConfig)
@@ -65,8 +65,6 @@ namespace miosix
 
             if (kernelFiles.empty())
                 throw new std::runtime_error("No kernel files found in directory");
-
-            valid = true;
         }
         catch (const std::exception &e)
         {
@@ -87,13 +85,6 @@ namespace miosix
 
     BootloaderManager &BootloaderManager::selectFile()
     {
-        // Validity barrier
-        if (!valid)
-        {
-            bootloaderlog("Skip selection, bootloader manager not valid\n");
-            return *this;
-        }
-
         selectedFile = -1;
 
         // Check if a default or alternative file have been selected
@@ -182,13 +173,6 @@ namespace miosix
 
     void BootloaderManager::loadSelectedFile()
     {
-        // Validity barrier
-        if (!valid)
-        {
-            bootloaderlog("Skip loading, bootloader manager not valid\n");
-            return;
-        }
-
         if (kernelFiles[selectedFile] == nullptr)
         {
             bootloaderlog("Skip loading, no kernel file selected\n");
@@ -228,13 +212,6 @@ namespace miosix
 
     void BootloaderManager::boot()
     {
-        // Validity barrier
-        if (!valid)
-        {
-            bootloaderlog("Skip booting, bootloader manager not valid\n");
-            return;
-        }
-
         loadSelectedFile();
 
         if (kernelFileStart == nullptr || kernelFileEnd == nullptr || relocationAddress == nullptr)

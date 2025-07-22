@@ -24,9 +24,6 @@ namespace miosix
         // Default constructor with default mountpoint and kernel files directory
         BootloaderManager(bool loadConfig = true) : BootloaderManager("/sd/", loadConfig) {}
 
-        // Returns if the bootloader manager has been initialized correctly
-        bool isValid() const { return valid; }
-
         // Make bootloader load config from mountpoint/config.txt
         BootloaderManager &loadConfig();
 
@@ -41,9 +38,6 @@ namespace miosix
         std::string mountpoint;
         // Directory where kernel files are located
         std::string kernelsDir;
-
-        // Indicates if the bootloader manager has been initialized correctly
-        bool valid;
 
         // List of kernel files found in the kernels directory
         std::vector<std::unique_ptr<KernelFile>> kernelFiles;
