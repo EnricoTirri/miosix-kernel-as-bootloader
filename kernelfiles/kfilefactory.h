@@ -1,5 +1,4 @@
-//TODO must edit: LICENSE
-
+// TODO must edit: LICENSE
 
 #pragma once
 
@@ -16,7 +15,7 @@ namespace miosix
     class KernelFileFactory
     {
     public:
-        using Builder = std::function<std::shared_ptr<KernelFile>(
+        using Builder = std::function<std::unique_ptr<KernelFile>(
             const std::string &directory, const std::string &filename, size_t filesize)>;
 
         static KernelFileFactory &instance()
@@ -30,7 +29,7 @@ namespace miosix
             builders[ext] = builder;
         }
 
-        std::shared_ptr<KernelFile> create(const std::string &directory,
+        std::unique_ptr<KernelFile> create(const std::string &directory,
                                            const std::string &filename,
                                            size_t filesize)
         {

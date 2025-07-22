@@ -1,4 +1,4 @@
-//TODO must edit: LICENSE
+// TODO must edit: LICENSE
 
 #pragma once
 
@@ -6,7 +6,7 @@
 #include "kfile.h"
 
 #define REISTER_KERNELFILE_CLASS(EXT, CLASS)                                                                \
-    namespace miosix                                                                                            \
+    namespace miosix                                                                                        \
     {                                                                                                       \
         struct CLASS##Register                                                                              \
         {                                                                                                   \
@@ -16,12 +16,11 @@
                     EXT,                                                                                    \
                     [](const std::string &dir,                                                              \
                        const std::string &fn, size_t size)                                                  \
-                        -> std::shared_ptr<KernelFile> { return std::make_shared<CLASS>(dir, fn, size); }); \
+                        -> std::unique_ptr<KernelFile> { return std::make_unique<CLASS>(dir, fn, size); }); \
             }                                                                                               \
         };                                                                                                  \
         static CLASS##Register global_##CLASS##_register;                                                   \
     }
-
 
 #include "bin_kfile.h"
 REISTER_KERNELFILE_CLASS(".bin", BinKernelFile)

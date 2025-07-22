@@ -49,10 +49,10 @@ namespace miosix
         bool valid;
 
         // List of kernel files found in the kernels directory
-        std::vector<std::shared_ptr<KernelFile>> kernelFiles;
+        std::vector<std::unique_ptr<KernelFile>> kernelFiles;
 
         // Selected kernel file
-        std::shared_ptr<KernelFile> selectedFile = nullptr;
+        size_t selectedFile = -1;
 
         // Pointers to the start and end of the loaded kernel file in memory and the relocation address
         void *kernelFileStart = nullptr,

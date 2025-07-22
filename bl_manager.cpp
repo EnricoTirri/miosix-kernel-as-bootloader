@@ -61,7 +61,7 @@ namespace miosix
                 {
                     size_t filesize = st.st_size;
                     auto kfile = KernelFileFactory::instance().create(filesDir, filename, filesize);
-                    kernelFiles.push_back(kfile);
+                    kernelFiles.push_back(std::move(kfile));
                 }
             }
             closedir(dir);
@@ -97,18 +97,18 @@ namespace miosix
             return *this;
         }
 
-        selectedFile = nullptr;
+        selectedFile = -1;
 
         // Check if a default or alternative file have been selected
         std::string t = (DefaultFile != "" ? DefaultFile : AlternativeFile);
         if (t != "")
         {
-            for (auto file : kernelFiles)
+            for (size_t i = 0; i < kernelFiles.size(); ++i)
             {
-                if (t == file->getFilename())
+                if (t == kernelFiles[i]->getFilename())
                 {
-                    selectedFile = file;
-                    bootloaderlog("Config selected kernel file: %s\n", selectedFile->getFilename().c_str());
+                    selectedFile = i;
+                    bootloaderlog("Config selected kernel file: %s\n", kernelFiles[i]->getFilename().c_str());
                     return *this;
                 }
             }
@@ -116,10 +116,9 @@ namespace miosix
 
         // Rollback on user choice
         iprintf("Available kernel files:\n");
-        int i = 0;
-        for (auto file : kernelFiles)
+        for (size_t i = 0; i < kernelFiles.size(); ++i)
         {
-            iprintf(" %d) %s\n", i++, file->getFilename().c_str());
+            iprintf(" %d) %s\n", i, kernelFiles[i]->getFilename().c_str());
         }
         size_t selected = -1;
         while (selected < 0 || selected >= kernelFiles.size())
@@ -133,10 +132,10 @@ namespace miosix
             std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         }
 
-        selectedFile = kernelFiles[selected];
+        selectedFile = selected;
 
-        if (selectedFile != nullptr)
-            bootloaderlog("User selected kernel file: %s\n", selectedFile->getFilename().c_str());
+        if (kernelFiles[selectedFile] != nullptr)
+            bootloaderlog("User selected kernel file: %s\n", kernelFiles[selectedFile]->getFilename().c_str());
         else
             iprintf("Unwanted error : file selected is null\n");
 
@@ -193,7 +192,7 @@ namespace miosix
             return *this;
         }
 
-        if (selectedFile == nullptr)
+        if (kernelFiles[selectedFile] == nullptr)
         {
             bootloaderlog("Skip loading, no kernel file selected\n");
             return *this;
@@ -208,7 +207,7 @@ namespace miosix
         // Load the selected kernel file into memory
         try
         {
-            selectedFile->load(&relocationAddress, &kernelFileStart, &kernelFileEnd);
+            kernelFiles[selectedFile]->load(&relocationAddress, &kernelFileStart, &kernelFileEnd);
         }
         catch (const std::exception &e)
         {
@@ -253,11 +252,14 @@ namespace miosix
         bootloaderlog("! GlobalLock acquired\n");
 
         FilesystemManager &fs = FilesystemManager::instance();
-        
+
         IRQbootloaderlog("! Unmounting sda ... ");
-        if(fs.getDevFs()->remove("sda")){
+        if (fs.getDevFs()->remove("sda"))
+        {
             IRQbootloaderlog("OK\r\n");
-        }else{
+        }
+        else
+        {
             IRQbootloaderlog("KO\r\n");
         }
 
@@ -266,9 +268,12 @@ namespace miosix
         IRQbootloaderlog("DONE\r\n");
 
         IRQbootloaderlog("! Checking all file are closed ... ");
-        if(fs.getDevFs()->areAllFilesClosed()){
+        if (fs.getDevFs()->areAllFilesClosed())
+        {
             IRQbootloaderlog("OK\r\n");
-        }else{
+        }
+        else
+        {
             IRQbootloaderlog("KO\r\n");
         }
 
