@@ -56,9 +56,6 @@ namespace miosix
              *kernelFileEnd = nullptr,
              *relocationAddress = nullptr;
 
-        // Check accessibility of bootloader resources mountpoint
-        bool checkMountPoint();
-
         // Load the kernel files available from bootloader resources
         bool loadKernelsDir();
 

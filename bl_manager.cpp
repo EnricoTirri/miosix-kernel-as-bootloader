@@ -18,10 +18,6 @@ namespace miosix
     BootloaderManager::BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir, bool loadConfig)
         : mountpoint(mountpoint), kernelsDir(kernelsDir), valid(false)
     {
-        // Check if mountpoint is a valid directory
-        if (!checkMountPoint())
-            return;
-
         // Try load configuration if requested
         if (loadConfig)
         {
@@ -34,20 +30,6 @@ namespace miosix
             return;
 
         bootloaderlog("OK : %u kernel files\n", kernelFiles.size());
-    }
-
-    bool BootloaderManager::checkMountPoint()
-    {
-        bootloaderlog("Checking mountpoint: %s ... ", mountpoint.c_str());
-        DIR *mountDir = opendir(mountpoint.c_str());
-        if (!mountDir)
-        {
-            bootloaderlog("KO : does not exist or is not a directory\n");
-            return false;
-        }
-        bootloaderlog("OK\n");
-        closedir(mountDir);
-        return true;
     }
 
     bool BootloaderManager::loadKernelsDir()
