@@ -33,9 +33,6 @@ namespace miosix
         // Select a kernel file to boot
         BootloaderManager &selectFile();
 
-        // Loads the selected kernel file into memory
-        BootloaderManager &loadSelectedFile();
-
         // Boot the loaded kernel file
         void boot();
 
@@ -58,6 +55,15 @@ namespace miosix
         void *kernelFileStart = nullptr,
              *kernelFileEnd = nullptr,
              *relocationAddress = nullptr;
+
+        // Check accessibility of bootloader resources mountpoint
+        bool checkMountPoint();
+
+        // Load the kernel files available from bootloader resources
+        bool loadKernelsDir();
+
+        // Loads the selected kernel file into memory
+        void loadSelectedFile();
 
         // Util function that checks if tag exists and assign value to its variable
         void assignTag(const std::string &tag, const std::string &value);

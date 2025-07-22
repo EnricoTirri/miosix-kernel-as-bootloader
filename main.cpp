@@ -11,8 +11,7 @@ int main()
 {
     BootloaderManager blManager;
 
-    
-    blManager.selectFile().loadSelectedFile().boot();
+    blManager.selectFile().boot();
 
     // This point should never be reached
     exit(EXIT_FAILURE);

@@ -19,15 +19,8 @@ namespace miosix
         : mountpoint(mountpoint), kernelsDir(kernelsDir), valid(false)
     {
         // Check if mountpoint is a valid directory
-        bootloaderlog("Checking mountpoint: %s ... ", mountpoint.c_str());
-        DIR *mountDir = opendir(mountpoint.c_str());
-        if (!mountDir)
-        {
-            bootloaderlog("KO : does not exist or is not a directory\n");
+        if (!checkMountPoint())
             return;
-        }
-        bootloaderlog("OK\n");
-        closedir(mountDir);
 
         // Try load configuration if requested
         if (loadConfig)
@@ -37,6 +30,28 @@ namespace miosix
 
         bootloaderlog("Initializing Bootloader Manager ... ");
 
+        if (!loadKernelsDir())
+            return;
+
+        bootloaderlog("OK : %u kernel files\n", kernelFiles.size());
+    }
+
+    bool BootloaderManager::checkMountPoint()
+    {
+        bootloaderlog("Checking mountpoint: %s ... ", mountpoint.c_str());
+        DIR *mountDir = opendir(mountpoint.c_str());
+        if (!mountDir)
+        {
+            bootloaderlog("KO : does not exist or is not a directory\n");
+            return false;
+        }
+        bootloaderlog("OK\n");
+        closedir(mountDir);
+        return true;
+    }
+
+    bool BootloaderManager::loadKernelsDir()
+    {
         try
         {
             // Check if kernelsDir is valid
@@ -74,10 +89,10 @@ namespace miosix
         catch (const std::exception &e)
         {
             bootloaderlog("KO : %s\n", e.what());
-            return;
+            return false;
         }
 
-        bootloaderlog("OK : %u kernel files\n", kernelFiles.size());
+        return true;
     }
 
     size_t BootloaderManager::getFileSize(const std::string &filepath)
@@ -183,19 +198,19 @@ namespace miosix
         return *this;
     }
 
-    BootloaderManager &BootloaderManager::loadSelectedFile()
+    void BootloaderManager::loadSelectedFile()
     {
         // Validity barrier
         if (!valid)
         {
             bootloaderlog("Skip loading, bootloader manager not valid\n");
-            return *this;
+            return;
         }
 
         if (kernelFiles[selectedFile] == nullptr)
         {
             bootloaderlog("Skip loading, no kernel file selected\n");
-            return *this;
+            return;
         }
 
         bootloaderlog("Loading selected kernel file ... ");
@@ -215,7 +230,7 @@ namespace miosix
             relocationAddress = nullptr;
             kernelFileStart = nullptr;
             kernelFileEnd = nullptr;
-            return *this;
+            return;
         }
         catch (...)
         {
@@ -223,12 +238,10 @@ namespace miosix
             relocationAddress = nullptr;
             kernelFileStart = nullptr;
             kernelFileEnd = nullptr;
-            return *this;
+            return;
         }
 
         bootloaderlog("OK\n\t - Loaded from %p to %p.\n\t - Relocation at %p\n", kernelFileStart, kernelFileEnd, relocationAddress);
-
-        return *this;
     }
 
     void BootloaderManager::boot()
@@ -239,6 +252,8 @@ namespace miosix
             bootloaderlog("Skip booting, bootloader manager not valid\n");
             return;
         }
+
+        loadSelectedFile();
 
         if (kernelFileStart == nullptr || kernelFileEnd == nullptr || relocationAddress == nullptr)
         {
