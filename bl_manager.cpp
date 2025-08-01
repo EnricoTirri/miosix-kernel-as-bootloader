@@ -11,34 +11,43 @@
 #include "bl_manager.h"
 
 #ifdef WITH_FATFS
+
+#define LOG_OK "[O]"
+#define LOG_ERROR "[X]"
+#define LOG_INFO "[i]"
+#define LOG_WORK "[.]"
 namespace miosix
 {
     BootloaderManager::BootloaderManager(const std::string &mountpoint, bool loadConfig)
     {
-        bootloaderlog("Initializing Bootloader Manager ...\n");
+        bootloaderlog("%s Initializing bootloader ...\n", LOG_WORK);
 
         setMountpoint(mountpoint, loadConfig);
 
-        loadKernelsDir();
-
-        bootloaderlog("... DONE : %u kernel files\n", kernelFiles.size());
+        bootloaderlog("%s Bootloader initialized\n", LOG_OK);
     }
 
     BootloaderManager &BootloaderManager::setMountpoint(const std::string &mountpoint, bool loadConfig)
     {
         this->mountpoint = mountpoint;
-        bootloaderlog("Mountpoint set to: %s\n", mountpoint.c_str());
+        bootloaderlog("%s Mountpoint set to : %s\n", LOG_INFO, mountpoint.c_str());
 
         if (loadConfig)
         {
             this->loadConfig();
         }
 
+        loadKernelsDir();
+
         return *this;
     }
 
     void BootloaderManager::loadKernelsDir()
     {
+        kernelFiles.clear();
+        selectedFile = -1;
+
+        bootloaderlog("%s Loading kernels from : /%s\n", LOG_WORK, kernelsDir.c_str());
         try
         {
             // Check if kernelsDir is valid
@@ -73,9 +82,11 @@ namespace miosix
         }
         catch (const std::exception &e)
         {
-            bootloaderlog("KO : %s\n", e.what());
+            bootloaderlog("%s %s\n", LOG_ERROR, e.what());
             return;
         }
+
+        bootloaderlog("%s Found %d kernels files\n", LOG_INFO, kernelFiles.size());
 
         // Check if autorun file exists, if found set as selected
         if (autorun != "")
@@ -85,12 +96,13 @@ namespace miosix
                 if (autorun == kernelFiles[i]->getFilename())
                 {
                     selectedFile = i;
-                    bootloaderlog("Autorun file found: %s\n", kernelFiles[i]->getFilename().c_str());
-                    return;
+                    bootloaderlog("%s Autorun file found: %s\n", LOG_INFO, kernelFiles[i]->getFilename().c_str());
+                    break;
                 }
             }
         }
 
+        bootloaderlog("%s Kernels dir loaded\n", LOG_OK);
         return;
     }
 
@@ -104,7 +116,7 @@ namespace miosix
 
     BootloaderManager &BootloaderManager::loadConfig()
     {
-        bootloaderlog("Loading configuration ... ");
+        bootloaderlog("%s Loading config\n", LOG_WORK);
         bool oldVerbose = verbose; // Save old verbose state
 
         // Load configuration from the config.txt file in the mountpoint
@@ -113,7 +125,7 @@ namespace miosix
         FILE *configFile = fopen(configPath.c_str(), "r");
         if (!configFile)
         {
-            bootloaderlog("KO continuing with defaults\n");
+            bootloaderlog("%s File not found, continuing with default config\n", LOG_ERROR);
             return *this;
         }
 
@@ -138,26 +150,37 @@ namespace miosix
         }
         fclose(configFile);
 
-        if (oldVerbose)
-            bootloaderlog("OK\n");
+        // If verbose has changed, log the end with the old state, then restore it
+        if (oldVerbose != verbose)
+        {
+            verbose = !verbose;
+            bootloaderlog("%s Config loaded\n", LOG_OK);
+            verbose = !verbose;
+        }
+        else
+        {
+            bootloaderlog("%s Config loaded\n", LOG_OK);
+        }
+
         return *this;
     }
 
     void BootloaderManager::loadSelectedFile()
     {
+        bootloaderlog("%s Loading selected kernel\n", LOG_WORK);
         if (selectedFile == -1)
         {
-            bootloaderlog("No kernel file selected, cannot load\n");
+            bootloaderlog("%s No kernel file selected, cannot load\n", LOG_ERROR);
             return;
         }
 
         if (kernelFiles[selectedFile] == nullptr)
         {
-            bootloaderlog("Selected kernel file does not exists, cannot load\n");
+            bootloaderlog("%s Kernel file does not exists, cannot load\n", LOG_ERROR);
             return;
         }
 
-        bootloaderlog("Loading kernel : %s ... ", kernelFiles[selectedFile]->getFilename().c_str());
+        bootloaderlog("%s Selected kernel : %s\n", LOG_INFO, kernelFiles[selectedFile]->getFilename().c_str());
 
         relocationAddress = nullptr;
         kernelFileStart = nullptr;
@@ -170,42 +193,46 @@ namespace miosix
         }
         catch (const std::exception &e)
         {
-            bootloaderlog("KO : %s\n", e.what());
             relocationAddress = nullptr;
             kernelFileStart = nullptr;
             kernelFileEnd = nullptr;
+
+            bootloaderlog("%s %s\n", LOG_ERROR, e.what());
             return;
         }
         catch (...)
         {
-            bootloaderlog("KO : unknown error\n");
             relocationAddress = nullptr;
             kernelFileStart = nullptr;
             kernelFileEnd = nullptr;
+
+            bootloaderlog("%s Unknown error\n", LOG_ERROR);
             return;
         }
 
-        bootloaderlog("OK\n\t - Loaded from %p to %p.\n\t - Relocation at %p\n", kernelFileStart, kernelFileEnd, relocationAddress);
+        bootloaderlog("%s Loaded from %p to %p.\n", LOG_INFO, kernelFileStart, kernelFileEnd);
+        bootloaderlog("%s Relocation at %p\n", LOG_INFO, relocationAddress);
+        bootloaderlog("%s Selected kernel loaded\n", LOG_OK);
     }
 
     void BootloaderManager::boot()
     {
+        bootloaderlog("%s Booting ...\n", LOG_WORK);
         loadSelectedFile();
 
         if (kernelFileStart == nullptr || kernelFileEnd == nullptr || relocationAddress == nullptr)
         {
-            bootloaderlog("Kernel file not loaded, cannot boot\n");
+            bootloaderlog("%s Kernel file not loaded, cannot boot\n", LOG_ERROR);
             return;
         }
 
-        bootloaderlog("! Booting kernel file\n");
-
         GlobalIrqLock lock;
-        bootloaderlog("! GlobalLock acquired\n");
+        bootloaderlog("%s GlobalLock acquired\n", LOG_INFO);
 
         FilesystemManager &fs = FilesystemManager::instance();
 
-        IRQbootloaderlog("! Unmounting sda ... ");
+        IRQbootloaderlog(LOG_INFO);
+        IRQbootloaderlog(" Unmounting sda ... ");
         if (fs.getDevFs()->remove("sda"))
         {
             IRQbootloaderlog("OK\r\n");
@@ -215,11 +242,13 @@ namespace miosix
             IRQbootloaderlog("KO\r\n");
         }
 
-        IRQbootloaderlog("! Unmounting all filesystems ... ");
+        IRQbootloaderlog(LOG_INFO);
+        IRQbootloaderlog(" Unmounting all filesystems ... ");
         fs.umountAll();
         IRQbootloaderlog("DONE\r\n");
 
-        IRQbootloaderlog("! Checking all file are closed ... ");
+        IRQbootloaderlog(LOG_INFO);
+        IRQbootloaderlog(" Checking all file are closed ... ");
         if (fs.getDevFs()->areAllFilesClosed())
         {
             IRQbootloaderlog("OK\r\n");
@@ -229,7 +258,10 @@ namespace miosix
             IRQbootloaderlog("KO\r\n");
         }
 
-        IRQbootloaderlog("! Setting up and running kernel ...\r\n\n");
+        IRQbootloaderlog(LOG_WORK);
+        IRQbootloaderlog(" Setup and run kernel ...\r\n");
+
+        miosix::DefaultConsole::instance().IRQget()->IRQwrite("\n");
         copyRun(relocationAddress, kernelFileStart, kernelFileEnd);
     }
 
@@ -264,7 +296,7 @@ namespace miosix
             : "r0", "r1", "r2", "r3", "r4", "memory");
 
         // This point should never be reached
-        bootloaderlog("KERNEL BOOT FAILED\n");
+        bootloaderlog("***KERNEL BOOT FAILED***\n");
     }
 
     void BootloaderManager::assignTag(const std::string &tag, const std::string &value)
