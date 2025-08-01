@@ -1,8 +1,6 @@
 // TODO must edit: LICENSE
 
-#include <cstdio>
 #include <cstring>
-#include <iostream>
 #include <stdexcept>
 
 #include "dirent.h"
@@ -15,24 +13,31 @@
 #ifdef WITH_FATFS
 namespace miosix
 {
-    BootloaderManager::BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir, bool loadConfig)
-        : mountpoint(mountpoint), kernelsDir(kernelsDir)
+    BootloaderManager::BootloaderManager(const std::string &mountpoint, bool loadConfig)
     {
-        // Try load configuration if requested
+        bootloaderlog("Initializing Bootloader Manager ...\n");
+
+        setMountpoint(mountpoint, loadConfig);
+
+        loadKernelsDir();
+
+        bootloaderlog("... DONE : %u kernel files\n", kernelFiles.size());
+    }
+
+    BootloaderManager &BootloaderManager::setMountpoint(const std::string &mountpoint, bool loadConfig)
+    {
+        this->mountpoint = mountpoint;
+        bootloaderlog("Mountpoint set to: %s\n", mountpoint.c_str());
+
         if (loadConfig)
         {
             this->loadConfig();
         }
 
-        bootloaderlog("Initializing Bootloader Manager ... ");
-
-        if (!loadKernelsDir())
-            return;
-
-        bootloaderlog("OK : %u kernel files\n", kernelFiles.size());
+        return *this;
     }
 
-    bool BootloaderManager::loadKernelsDir()
+    void BootloaderManager::loadKernelsDir()
     {
         try
         {
@@ -69,10 +74,24 @@ namespace miosix
         catch (const std::exception &e)
         {
             bootloaderlog("KO : %s\n", e.what());
-            return false;
+            return;
         }
 
-        return true;
+        // Check if autorun file exists, if found set as selected
+        if (autorun != "")
+        {
+            for (size_t i = 0; i < kernelFiles.size(); ++i)
+            {
+                if (autorun == kernelFiles[i]->getFilename())
+                {
+                    selectedFile = i;
+                    bootloaderlog("Autorun file found: %s\n", kernelFiles[i]->getFilename().c_str());
+                    return;
+                }
+            }
+        }
+
+        return;
     }
 
     size_t BootloaderManager::getFileSize(const std::string &filepath)
@@ -83,57 +102,10 @@ namespace miosix
         return static_cast<size_t>(-1);
     }
 
-    BootloaderManager &BootloaderManager::selectFile()
-    {
-        selectedFile = -1;
-
-        // Check if a default or alternative file have been selected
-        std::string t = (DefaultFile != "" ? DefaultFile : AlternativeFile);
-        if (t != "")
-        {
-            for (size_t i = 0; i < kernelFiles.size(); ++i)
-            {
-                if (t == kernelFiles[i]->getFilename())
-                {
-                    selectedFile = i;
-                    bootloaderlog("Config selected kernel file: %s\n", kernelFiles[i]->getFilename().c_str());
-                    return *this;
-                }
-            }
-        }
-
-        // Rollback on user choice
-        iprintf("Available kernel files:\n");
-        for (size_t i = 0; i < kernelFiles.size(); ++i)
-        {
-            iprintf(" %d) %s\n", i, kernelFiles[i]->getFilename().c_str());
-        }
-        size_t selected = -1;
-        while (selected < 0 || selected >= kernelFiles.size())
-        {
-            iprintf("Select an index: ");
-            fflush(stdout);
-            iscanf("%u", &selected);
-
-            // Prevents invalid input from causing an infinite loop
-            std::cin.clear();
-            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        }
-
-        selectedFile = selected;
-
-        if (kernelFiles[selectedFile] != nullptr)
-            bootloaderlog("User selected kernel file: %s\n", kernelFiles[selectedFile]->getFilename().c_str());
-        else
-            iprintf("Unwanted error : file selected is null\n");
-
-        return *this;
-    }
-
     BootloaderManager &BootloaderManager::loadConfig()
     {
         bootloaderlog("Loading configuration ... ");
-        bool oldVerbose = Verbose; // Save old verbose state
+        bool oldVerbose = verbose; // Save old verbose state
 
         // Load configuration from the config.txt file in the mountpoint
         std::string configPath = mountpoint + "/config.txt";
@@ -173,13 +145,19 @@ namespace miosix
 
     void BootloaderManager::loadSelectedFile()
     {
-        if (kernelFiles[selectedFile] == nullptr)
+        if (selectedFile == -1)
         {
-            bootloaderlog("Skip loading, no kernel file selected\n");
+            bootloaderlog("No kernel file selected, cannot load\n");
             return;
         }
 
-        bootloaderlog("Loading selected kernel file ... ");
+        if (kernelFiles[selectedFile] == nullptr)
+        {
+            bootloaderlog("Selected kernel file does not exists, cannot load\n");
+            return;
+        }
+
+        bootloaderlog("Loading kernel : %s ... ", kernelFiles[selectedFile]->getFilename().c_str());
 
         relocationAddress = nullptr;
         kernelFileStart = nullptr;
@@ -299,16 +277,16 @@ namespace miosix
             return;                                   \
         }                                             \
     }
-        CHECK_TAG(tag, "default", DefaultFile, value)
-        CHECK_TAG(tag, "alternative", AlternativeFile, value)
-        CHECK_TAG(tag, "verbose", Verbose, (value == "1"))
+        CHECK_TAG(tag, "autorun", autorun, value)
+        CHECK_TAG(tag, "kernelsDir", kernelsDir, value)
+        CHECK_TAG(tag, "verbose", verbose, (value == "1"))
 
 #undef CHECK_TAG
     }
 
     void BootloaderManager::bootloaderlog(const char *fmt, ...)
     {
-        if (!Verbose)
+        if (!verbose)
             return;
 
         va_list arg;
@@ -319,7 +297,7 @@ namespace miosix
 
     void BootloaderManager::IRQbootloaderlog(const char *fmt)
     {
-        if (!Verbose)
+        if (!verbose)
             return;
 
         miosix::DefaultConsole::instance().IRQget()->IRQwrite(fmt);

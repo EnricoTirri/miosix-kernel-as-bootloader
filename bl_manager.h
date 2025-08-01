@@ -16,19 +16,42 @@ namespace miosix
     {
     public:
         // Constructor with mountpoint and kernel files directory
-        explicit BootloaderManager(const std::string &mountpoint, const std::string &kernelsDir, bool loadConfig = true);
-
-        // Constructor with mountpoint and default kernel files directory
-        BootloaderManager(const std::string &mountpoint, bool loadConfig = true) : BootloaderManager(mountpoint, "/kernels/", loadConfig) {}
+        explicit BootloaderManager(const std::string &mountpoint, bool loadConfig = true);
 
         // Default constructor with default mountpoint and kernel files directory
         BootloaderManager(bool loadConfig = true) : BootloaderManager("/sd/", loadConfig) {}
 
+        // Change the mountpoint where the bootloader will look for kernel files
+        BootloaderManager &setMountpoint(const std::string &mountpoint, bool loadConfig = true);
+
         // Make bootloader load config from mountpoint/config.txt
         BootloaderManager &loadConfig();
 
+        std::vector<std::string> getKernelFiles() const
+        {
+            std::vector<std::string> fileNames;
+            for (const auto &file : kernelFiles)
+            {
+                fileNames.push_back(file->getFilename());
+            }
+            return fileNames;
+        }
+
         // Select a kernel file to boot
-        BootloaderManager &selectFile();
+        bool selectFile(size_t index = 0)
+        {
+            if (index < 0 || index >= kernelFiles.size()){
+                return false; // Invalid index, do not select
+            }
+
+            selectedFile = index;
+            return true;
+        }
+
+        bool isFileSelected() const
+        {
+            return selectedFile != -1;
+        }
 
         // Boot the loaded kernel file
         void boot();
@@ -36,14 +59,12 @@ namespace miosix
     private:
         // Mountpoint where config and kernelDir are located
         std::string mountpoint;
-        // Directory where kernel files are located
-        std::string kernelsDir;
 
         // List of kernel files found in the kernels directory
         std::vector<std::unique_ptr<KernelFile>> kernelFiles;
 
         // Selected kernel file
-        size_t selectedFile = -1;
+        int selectedFile = -1;
 
         // Pointers to the start and end of the loaded kernel file in memory and the relocation address
         void *kernelFileStart = nullptr,
@@ -51,7 +72,7 @@ namespace miosix
              *relocationAddress = nullptr;
 
         // Load the kernel files available from bootloader resources
-        bool loadKernelsDir();
+        void loadKernelsDir();
 
         // Loads the selected kernel file into memory
         void loadSelectedFile();
@@ -71,18 +92,18 @@ namespace miosix
 
         // CONFIGURATION VARIABLES //
 
-// Configs definer macro, create a private variable with a getter
+// Configs definer macro, create a private variable with a getter method
 #define CONFIG_VAR(type, name, default) \
 private:                                \
     type name = default;                \
                                         \
 public:                                 \
-    type get##name() const { return name; }
+    type getT##name() const { return name; }
 
         // Config list
-        CONFIG_VAR(std::string, DefaultFile, "")     // Default file to boot
-        CONFIG_VAR(std::string, AlternativeFile, "") // Alternative file to boot if the default is not found
-        CONFIG_VAR(bool, Verbose,
+        CONFIG_VAR(std::string, autorun, "")     // Default file to boot
+        CONFIG_VAR(std::string, kernelsDir, "kernels") // Directory where kernel files are located
+        CONFIG_VAR(bool, verbose,
 #ifdef WITH_BOOTLOG
                    true
 #else
