@@ -5,7 +5,7 @@
 #include "kfilefactory.h"
 #include "kfile.h"
 
-#define REISTER_KERNELFILE_CLASS(EXT, CLASS)                                                                \
+#define REGISTER_KERNELFILE_CLASS(EXT, CLASS)                                                               \
     namespace miosix                                                                                        \
     {                                                                                                       \
         struct CLASS##Register                                                                              \
@@ -23,4 +23,7 @@
     }
 
 #include "bin_kfile.h"
-REISTER_KERNELFILE_CLASS(".bin", BinKernelFile)
+REGISTER_KERNELFILE_CLASS(".bin", BinKernelFile)
+
+#include "elf_kfile.h"
+REGISTER_KERNELFILE_CLASS(".elf", ElfKernelFile)

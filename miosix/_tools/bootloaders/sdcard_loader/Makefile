@@ -3,15 +3,16 @@
 ##
 
 ## Path to kernel/config directories (edited by init_project_out_of_git_repo.pl)
-KPATH := miosix
+KPATH := ../../../../miosix
 CONFPATH := $(KPATH)
-MAKEFILE_VERSION := 1.15
+MAKEFILE_VERSION := 1.16
 include $(KPATH)/Makefile.kcommon
 
 ##
 ## List here your source files (both .s, .c and .cpp)
 ##
-SRC := main.cpp
+SRC := sdcard_loader.cpp \
+	   bl_manager.cpp
 
 ##
 ## List here additional include directories (in the form -Iinclude_dir)
